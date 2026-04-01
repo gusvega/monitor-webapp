@@ -1,6 +1,7 @@
 'use client'
 
 import { Activity, AlertCircle, CheckCircle } from 'lucide-react'
+import { Card, Container, PageIntro, Badge, Button } from '@gusvega/ui'
 
 // Under construction landing page for the monitoring dashboard
 export default function Home() {
@@ -8,7 +9,7 @@ export default function Home() {
     <main className="flex flex-col items-center justify-center min-h-screen px-4 py-12 bg-gradient-to-b from-white via-neutral-50 to-white">
       <div className="max-w-2xl mx-auto w-full text-center space-y-8">
         <div className="space-y-4">
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-6">
             <Activity className="w-16 h-16 text-blue-600" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-neutral-950">
@@ -19,11 +20,11 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-neutral-200 p-8 sm:p-12 shadow-sm space-y-6">
+        <Card className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-left">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <p className="text-sm font-medium text-neutral-950">Under Construction</p>
+              <Badge variant="secondary">Under Construction</Badge>
             </div>
             <p className="text-neutral-700 leading-relaxed">
               This is where my monitoring will live for all my websites, web apps, and infrastructure.
@@ -47,11 +48,11 @@ export default function Home() {
               </li>
             </ul>
           </div>
-        </div>
 
-        <p className="text-sm text-neutral-600">
-          Check back soon for updates
-        </p>
+          <div className="flex justify-center pt-2">
+            <Button variant="ghost">Check back soon for updates</Button>
+          </div>
+        </Card>
       </div>
     </main>
   )
