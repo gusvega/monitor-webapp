@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@gusvega/ui": "latest",
+    "@gusvega/ui-tokens": "latest",
     "lucide-react": "latest",
     "next": "15.5.14",
     "react": "^18.2.0",

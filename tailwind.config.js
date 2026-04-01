@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-import { preset } from '@gusvega/ui/tailwind'
+import { colors, spacing, typography } from '@gusvega/ui-tokens'
 
 export default {
   content: [
@@ -7,5 +7,13 @@ export default {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  presets: [preset],
+  theme: {
+    extend: {
+      colors,
+      spacing,
+      fontFamily: typography.fontFamily,
+      fontSize: typography.fontSize,
+      fontWeight: typography.fontWeight,
+    },
+  },
 }
