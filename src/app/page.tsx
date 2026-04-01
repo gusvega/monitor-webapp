@@ -2,6 +2,7 @@
 
 import { Activity, AlertCircle, CheckCircle } from 'lucide-react'
 
+// Under construction landing page for the monitoring dashboard
 export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-4 py-12 bg-gradient-to-b from-white via-neutral-50 to-white">
