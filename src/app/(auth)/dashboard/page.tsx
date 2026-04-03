@@ -461,7 +461,14 @@ export default function Dashboard() {
                                     })
                                     const runJobs = Object.values(jobsByName)
                                     console.log(`[CI JOB DEDUP] Run ${run.id}: total jobs=${run.jobs?.length}, unique jobs=${runJobs.length}`, runJobs.map((j: any) => j.name))
-                                    const runStatus = runJobs.some((j: any) => j.conclusion === 'failure')
+                                    // Use the workflow run's actual status from GitHub
+                                    const runStatus = run.status === 'in_progress'
+                                      ? 'running'
+                                      : run.conclusion === 'failure'
+                                      ? 'failure'
+                                      : run.conclusion === 'success'
+                                      ? 'success'
+                                      : runJobs.some((j: any) => j.conclusion === 'failure')
                                       ? 'failure'
                                       : runJobs.some(j => !j.conclusion)
                                       ? 'running'
@@ -564,7 +571,14 @@ export default function Dashboard() {
                                       ['dev', 'qat', 'prod'].some(env => job.name.toLowerCase().includes(env))
                                     )
                                     
-                                    const overallStatus = allDeployJobs.some(j => j.conclusion === 'failure')
+                                    // Use the workflow run's actual status from GitHub
+                                    const overallStatus = run.status === 'in_progress'
+                                      ? 'running'
+                                      : run.conclusion === 'failure'
+                                      ? 'failure'
+                                      : run.conclusion === 'success'
+                                      ? 'success'
+                                      : allDeployJobs.some(j => j.conclusion === 'failure')
                                       ? 'failure'
                                       : allDeployJobs.some(j => !j.conclusion)
                                       ? 'running'
