@@ -44,7 +44,7 @@ function ProtectedLayoutContent({
     <>
       <Topbar />
       <Sidebar />
-      <main className="ml-64 min-h-screen">
+      <main className="ml-64 min-h-screen pt-16">
         {children}
       </main>
     </>
