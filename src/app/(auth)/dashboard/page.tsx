@@ -535,27 +535,16 @@ export default function Dashboard() {
                               })()}
                             </div>
 
-                            {/* Pipeline Runs - Show last 5 runs with boxes */}
+                            {/* Pipeline Runs - Collapsible boxes like CD workflow */}
                             {(() => {
-                              // Get all unique CI runs from workflowRuns
-                              const ciRunIds = new Set<number>()
-                              repo.workflowRuns?.forEach((run) => {
-                                if (run.name?.includes('CI')) {
-                                  ciRunIds.add(run.id)
-                                }
-                              })
-                              const ciRuns = Array.from(ciRunIds)
-                                .map((id) => repo.workflowRuns?.find((r) => r.id === id))
-                                .filter(Boolean)
+                              const ciRuns = (repo.workflowRuns || [])
+                                .filter((run) => run.name?.includes('CI'))
                                 .slice(0, 5)
-
-                              console.log('[DASHBOARD] CI Runs found:', ciRuns.length, ciRuns.map((r) => r?.name))
 
                               return ciRuns.length > 0 ? (
                                 <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
-                                  <p className="text-xs font-semibold text-blue-700">Recent Pipeline Runs</p>
                                   {ciRuns.map((run) => {
-                                    if (!run) return null
+                                    const isExpanded = expandedCiRuns[repo.id] === run.id
                                     const runJobs = run.jobs || []
                                     const runStatus = runJobs.some(j => j.conclusion === 'failure')
                                       ? 'failure'
@@ -565,36 +554,69 @@ export default function Dashboard() {
 
                                     return (
                                       <div key={run.id} className="bg-white border border-blue-200 rounded p-2">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-xs font-medium text-blue-900">{formatDate(run.created_at)}</span>
-                                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                                            runStatus === 'success'
-                                              ? 'bg-green-100 text-green-700'
-                                              : runStatus === 'failure'
-                                              ? 'bg-red-100 text-red-700'
-                                              : 'bg-yellow-100 text-yellow-700'
-                                          }`}>
-                                            {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
-                                          </span>
-                                        </div>
-                                        <div className="space-y-0.5">
-                                          {runJobs.slice(0, 2).map((job) => (
-                                            <div key={job.id} className="flex items-center gap-1 text-xs">
-                                              <div>
-                                                {job.conclusion === 'success' ? (
-                                                  <CheckCircle className="w-3 h-3 text-green-600" />
-                                                ) : job.conclusion === 'failure' ? (
-                                                  <X className="w-3 h-3 text-red-500" />
-                                                ) : job.conclusion === 'skipped' ? (
-                                                  <div className="w-3 h-3 rounded-full bg-gray-400" />
-                                                ) : (
-                                                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                                                )}
+                                        <button
+                                          onClick={() =>
+                                            setExpandedCiRuns((prev) => ({
+                                              ...prev,
+                                              [repo.id]: isExpanded ? null : run.id,
+                                            }))
+                                          }
+                                          className="w-full flex items-center justify-between hover:bg-blue-50 p-1 rounded transition-colors"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <div className="text-sm leading-none">{isExpanded ? '▼' : '▶'}</div>
+                                            <span className="text-xs font-semibold text-blue-700">{formatDate(run.created_at)}</span>
+                                            {!isExpanded && (
+                                              <div className="flex items-center gap-1">
+                                                {runJobs.map((job) => (
+                                                  <div key={job.id}>
+                                                    {job.conclusion === 'success' ? (
+                                                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                    ) : job.conclusion === 'failure' ? (
+                                                      <X className="w-3.5 h-3.5 text-red-500" />
+                                                    ) : job.conclusion === 'skipped' ? (
+                                                      <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
+                                                    ) : (
+                                                      <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                    )}
+                                                  </div>
+                                                ))}
                                               </div>
-                                              <span className="text-neutral-700 truncate">{job.name}</span>
-                                            </div>
-                                          ))}
-                                        </div>
+                                            )}
+                                          </div>
+                                          <span
+                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${
+                                              runStatus === 'success'
+                                                ? 'bg-green-100 text-green-700'
+                                                : runStatus === 'failure'
+                                                ? 'bg-red-100 text-red-700'
+                                                : 'bg-yellow-100 text-yellow-700'
+                                            }`}
+                                          >
+                                            <span>{runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}</span>
+                                          </span>
+                                        </button>
+
+                                        {isExpanded && (
+                                          <div className="mt-2 pt-2 border-t border-blue-100 space-y-1">
+                                            {runJobs.map((job) => (
+                                              <div key={job.id} className="flex items-center gap-2 py-1 px-1 text-xs">
+                                                <div>
+                                                  {job.conclusion === 'success' ? (
+                                                    <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                  ) : job.conclusion === 'failure' ? (
+                                                    <X className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                                  ) : job.conclusion === 'skipped' ? (
+                                                    <div className="w-3 h-3 rounded-full bg-gray-400 flex-shrink-0" />
+                                                  ) : (
+                                                    <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
+                                                  )}
+                                                </div>
+                                                <span className="text-neutral-700 truncate">{job.name}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                     )
                                   })}
