@@ -435,8 +435,8 @@ export default function Dashboard() {
                           <p className="text-sm font-semibold text-neutral-900">Recent Deployments</p>
                         </div>
                         
-                        <div className="space-y-4">
-                          {/* CI Pipeline */}
+                        <div className="grid grid-cols-4 gap-3">
+                          {/* CI Pipeline - 1 column */}
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <p className="text-sm font-bold text-blue-900 mb-3">CI Workflow</p>
                             <div className="grid grid-cols-1 gap-3">
@@ -486,8 +486,8 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          {/* CD Pipeline */}
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          {/* CD Pipeline - 3 columns */}
+                          <div className="col-span-3 bg-green-50 border border-green-200 rounded-lg p-4">
                             <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
                             <div className="grid grid-cols-3 gap-3">
                               {['dev', 'qat', 'prod'].map((env) => {
