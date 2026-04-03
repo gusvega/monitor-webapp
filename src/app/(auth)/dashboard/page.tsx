@@ -356,10 +356,6 @@ export default function Dashboard() {
                         <p className="text-neutral-900 font-medium">{repo.lastUpdated}</p>
                       </div>
                       <div>
-                        <p className="text-neutral-600 text-xs font-semibold uppercase tracking-wide mb-1">Stars</p>
-                        <p className="text-neutral-900 font-medium">{repo.stars}</p>
-                      </div>
-                      <div>
                         <p className="text-neutral-600 text-xs font-semibold uppercase tracking-wide mb-1">Full Name</p>
                         <p className="text-neutral-900 font-medium truncate">{repo.full_name}</p>
                       </div>
