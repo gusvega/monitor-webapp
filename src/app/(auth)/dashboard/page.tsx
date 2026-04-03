@@ -273,7 +273,7 @@ export default function Dashboard() {
         })
         return currentRepos
       })
-    }, 30000) // Poll every 30 seconds
+    }, 5000) // Poll every 5 seconds for near real-time updates
 
     return () => clearInterval(pollInterval)
   }, [session])
