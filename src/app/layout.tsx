@@ -10,16 +10,17 @@ export const metadata: Metadata = {
   description: 'Monitoring dashboard for websites, webapps, and infrastructure.',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="font-sans">
+      <body className="font-sans bg-neutral-50">
         {children}
       </body>
     </html>
   )
 }
+// Triggered automated deployment at Thu Apr  2 21:45:21 PDT 2026
