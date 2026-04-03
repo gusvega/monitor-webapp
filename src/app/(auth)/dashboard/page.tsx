@@ -534,6 +534,22 @@ export default function Dashboard() {
                                 )
                               })()}
                             </div>
+
+                            {/* Last CI Run - Debug Display */}
+                            {(() => {
+                              const lastCiRun = (repo.workflowRuns || [])
+                                .find((run) => run.name?.includes('CI'))
+                              
+                              if (!lastCiRun) return <p className="text-xs text-gray-400 mt-2">No CI runs</p>
+                              
+                              return (
+                                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                                  <p className="font-semibold text-blue-700">Last CI Run: {formatDate(lastCiRun.created_at)}</p>
+                                  <p className="text-gray-600">Status: {lastCiRun.conclusion || 'in_progress'}</p>
+                                </div>
+                              )
+                            })()}
+                            
                             {/* Pipeline Runs - Collapsible boxes like CD workflow */}
                             {(() => {
                               const ciRuns = (repo.workflowRuns || [])
