@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { SessionProvider } from 'next-auth/react'
 // @ts-expect-error CSS import
 import './globals.css'
 
@@ -18,7 +19,9 @@ export default async function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="font-sans bg-neutral-50">
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   )
