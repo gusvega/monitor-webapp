@@ -535,7 +535,9 @@ export default function Dashboard() {
                                                 : 'bg-yellow-100 text-yellow-700'
                                             }`}
                                           >
-                                            <span>{runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}</span>
+                                            <span>
+                                              {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
+                                            </span>
                                             {runStatus === 'success' ? 'Success' : runStatus === 'failure' ? 'Failed' : 'Running'}
                                           </span>
                                         </button>
