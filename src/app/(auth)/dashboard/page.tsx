@@ -548,15 +548,16 @@ export default function Dashboard() {
                                 <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
                                   {ciRuns.map((run) => {
                                     const isExpanded = expandedCiRuns[repo.id] === run.id
-                                    // Deduplicate jobs by name - keep only the first (latest) instance of each job
-                                    const seenJobNames = new Set<string>()
-                                    const runJobs = (run.jobs || []).filter((job) => {
-                                      if (seenJobNames.has(job.name)) return false
-                                      seenJobNames.add(job.name)
-                                      return true
+                                    // Get unique jobs by name - GitHub sometimes returns duplicate jobs
+                                    const jobsByName: Record<string, any> = {}
+                                    ;(run.jobs || []).forEach((job) => {
+                                      if (!jobsByName[job.name]) {
+                                        jobsByName[job.name] = job
+                                      }
                                     })
-                                    console.log(`[CI JOB DEDUP] Run ${run.id}: total jobs=${run.jobs?.length}, after dedup=${runJobs.length}`, runJobs.map(j => j.name))
-                                    const runStatus = runJobs.some(j => j.conclusion === 'failure')
+                                    const runJobs = Object.values(jobsByName)
+                                    console.log(`[CI JOB DEDUP] Run ${run.id}: total jobs=${run.jobs?.length}, unique jobs=${runJobs.length}`, runJobs.map((j: any) => j.name))
+                                    const runStatus = runJobs.some((j: any) => j.conclusion === 'failure')
                                       ? 'failure'
                                       : runJobs.some(j => !j.conclusion)
                                       ? 'running'
