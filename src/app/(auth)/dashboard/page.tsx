@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { AlertCircle, CheckCircle, GitBranch, Loader, ExternalLink, Star, Server, X } from 'lucide-react'
 import Link from 'next/link'
 import UserGreeting from '@/components/UserGreeting'
-import { fetchDeployments, groupDeploymentsByEnvironment, fetchReleases, fetchWorkflowRuns, fetchTags, STANDARD_ENVIRONMENTS, type WorkflowRun } from '@/lib/github'
+import { fetchDeployments, groupDeploymentsByEnvironment, fetchReleases, fetchWorkflowRuns, fetchTags, fetchWorkflowRunJobs, STANDARD_ENVIRONMENTS, type WorkflowRun, type WorkflowJob } from '@/lib/github'
 
 interface GitHubRepo {
   id: number
@@ -30,7 +30,7 @@ interface RepoDisplay {
   lastUpdated: string
   url: string
   deployments?: Record<string, { tag: string; date: string } | null>
-  workflowRuns?: WorkflowRun[]
+  workflowRuns?: (WorkflowRun & { jobs?: WorkflowJob[] })[]
 }
 
 const formatDate = (dateString?: string) => {
@@ -182,11 +182,23 @@ export default function Dashboard() {
         console.log('[DASHBOARD] Deployment data for', repo.name, ':', deploymentData)
         console.log('[DASHBOARD] Workflow runs for', repo.name, ':', workflowRuns.length)
 
-        setRepos((prev) =>
-          prev.map((r) => (r.id === repo.id ? { ...r, deployments: deploymentData, workflowRuns } : r))
-        )
+        // Fetch jobs for each workflow run
+        Promise.all(
+          workflowRuns.map((run) => fetchWorkflowRunJobs(repo.full_name, run.id, accessToken))
+        ).then((jobsArray) => {
+          const runsWithJobs = workflowRuns.map((run, index) => ({
+            ...run,
+            jobs: jobsArray[index],
+          }))
 
-        setDeploymentLoading((prev) => ({ ...prev, [repo.id]: false }))
+          console.log('[DASHBOARD] Runs with jobs for', repo.name, ':', runsWithJobs)
+
+          setRepos((prev) =>
+            prev.map((r) => (r.id === repo.id ? { ...r, deployments: deploymentData, workflowRuns: runsWithJobs } : r))
+          )
+
+          setDeploymentLoading((prev) => ({ ...prev, [repo.id]: false }))
+        })
       })
     })
   }, [repos.length])
@@ -421,21 +433,39 @@ export default function Dashboard() {
                         </div>
                         <div className="space-y-2">
                           {repo.workflowRuns.map((run) => (
-                            <div key={run.id} className="flex items-center justify-between bg-neutral-50 rounded px-3 py-2">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                {run.conclusion === 'success' ? (
-                                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                                ) : run.conclusion === 'failure' ? (
-                                  <X className="w-4 h-4 text-red-500 flex-shrink-0" />
-                                ) : (
-                                  <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
-                                )}
-                                <span className="text-sm font-medium text-neutral-700 truncate">{run.name}</span>
+                            <div key={run.id} className="bg-neutral-50 rounded p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  {run.conclusion === 'success' ? (
+                                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                  ) : run.conclusion === 'failure' ? (
+                                    <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
+                                  )}
+                                  <span className="text-sm font-medium text-neutral-700 truncate">{run.name}</span>
+                                </div>
+                                <div className="text-right ml-2 flex-shrink-0">
+                                  <p className="text-xs font-semibold text-neutral-900">{run.head_branch}</p>
+                                  <p className="text-xs text-neutral-500">{formatDate(run.updated_at)}</p>
+                                </div>
                               </div>
-                              <div className="text-right ml-2">
-                                <p className="text-xs font-semibold text-neutral-900">{run.head_branch}</p>
-                                <p className="text-xs text-neutral-500">{formatDate(run.updated_at)}</p>
-                              </div>
+                              {run.jobs && run.jobs.length > 0 && (
+                                <div className="flex flex-wrap gap-2 ml-6">
+                                  {run.jobs.map((job) => (
+                                    <div key={job.id} className="flex items-center gap-1 text-xs">
+                                      {job.conclusion === 'success' ? (
+                                        <CheckCircle className="w-3 h-3 text-green-600" />
+                                      ) : job.conclusion === 'failure' ? (
+                                        <X className="w-3 h-3 text-red-500" />
+                                      ) : (
+                                        <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                                      )}
+                                      <span className="text-neutral-600">{job.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

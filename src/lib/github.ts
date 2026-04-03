@@ -29,6 +29,19 @@ export interface WorkflowRun {
   event: string
 }
 
+export interface WorkflowJob {
+  id: number
+  name: string
+  status: string
+  conclusion: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+export interface WorkflowRunWithJobs extends WorkflowRun {
+  jobs?: WorkflowJob[]
+}
+
 export const STANDARD_ENVIRONMENTS = ['test', 'dev', 'qat', 'prod']
 
 export async function fetchDeployments(
@@ -184,6 +197,37 @@ export async function fetchWorkflowRuns(
     return runs
   } catch (err) {
     console.error(`[GITHUB] Error fetching workflow runs for ${repoFullName}:`, err)
+    return []
+  }
+}
+
+export async function fetchWorkflowRunJobs(
+  repoFullName: string,
+  runId: number,
+  accessToken: string
+): Promise<WorkflowJob[]> {
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${repoFullName}/actions/runs/${runId}/jobs`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      console.warn(`[GITHUB] Failed to fetch jobs for run ${runId}:`, response.status)
+      return []
+    }
+
+    const data = await response.json()
+    const jobs = data.jobs || []
+    console.log('[GITHUB] Fetched', jobs.length, 'jobs for run', runId)
+    return jobs
+  } catch (err) {
+    console.error(`[GITHUB] Error fetching jobs for run ${runId}:`, err)
     return []
   }
 }
