@@ -470,6 +470,21 @@ export default function Dashboard() {
                                                 {expandedCiRuns[repo.id] ? '▼' : '▶'}
                                               </div>
                                               <span className="text-xs font-semibold text-blue-700">Pipeline Run</span>
+                                              {!expandedCiRuns[repo.id] && (
+                                                <div className="flex items-center gap-1.5 ml-2">
+                                                  {ciJobs.map((job) => (
+                                                    <div key={job.id}>
+                                                      {job.conclusion === 'success' ? (
+                                                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                      ) : job.conclusion === 'failure' ? (
+                                                        <X className="w-3.5 h-3.5 text-red-500" />
+                                                      ) : (
+                                                        <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                      )}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
                                             </div>
                                             <span className={`text-xs font-medium px-2 py-1 rounded ${
                                               ciJobs.every(j => j.conclusion === 'success') 
