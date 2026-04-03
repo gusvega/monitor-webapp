@@ -186,9 +186,9 @@ export async function fetchWorkflowRuns(
   try {
     console.log('[GITHUB] Fetching workflow runs for', repoFullName)
     
-    // Fetch all recent workflow runs regardless of workflow - remove status filter to catch all runs
+    // Fetch all recent workflow runs (100 per page to catch both push and pull_request events)
     const response = await fetch(
-      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=50`,
+      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=100&exclude_pull_requests=false`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -204,7 +204,13 @@ export async function fetchWorkflowRuns(
 
     const data = await response.json()
     const allRuns = data.workflow_runs || []
-    console.log('[GITHUB] All runs returned from API:', allRuns.map((r: any) => ({ name: r.name, status: r.status, conclusion: r.conclusion })))
+    console.log('[GITHUB] All runs returned from API:', allRuns.map((r: any) => ({ 
+      name: r.name, 
+      status: r.status, 
+      conclusion: r.conclusion,
+      event: r.event,
+      head_branch: r.head_branch 
+    })))
     
     // Filter for our three workflows by name
     const filteredRuns = allRuns.filter((run: any) => 
@@ -215,11 +221,12 @@ export async function fetchWorkflowRuns(
       run.name?.includes('Validate')
     )
     
-    // Sort by created_at descending and take the most recent 10
+    // Sort by created_at descending and take the most recent 20
     filteredRuns.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    const recentRuns = filteredRuns.slice(0, 10)
+    const recentRuns = filteredRuns.slice(0, 20)
     
     console.log('[GITHUB] Fetched', allRuns.length, 'total runs, filtered to', recentRuns.length, 'workflow runs for', repoFullName)
+    console.log('[GITHUB] Run breakdown - CI:', recentRuns.filter((r: any) => r.name?.includes('CI') || r.name?.includes('Validate')).length, 'CD:', recentRuns.filter((r: any) => r.name?.includes('CD') || r.name?.includes('Promote')).length)
     if (recentRuns.length > 0) {
       console.log('[GITHUB] Recent run names:', recentRuns.map((r: any) => r.name))
     }
