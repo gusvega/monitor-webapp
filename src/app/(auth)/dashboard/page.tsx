@@ -241,42 +241,42 @@ export default function Dashboard() {
     }
   }, [repos.length])
 
-  // Poll for workflow run updates every 30 seconds
+  // Poll for workflow run updates every 5 seconds
   useEffect(() => {
     const accessToken = (session as any)?.accessToken
     if (!accessToken || repos.length === 0) return
 
-    const pollInterval = setInterval(() => {
+    const pollInterval = setInterval(async () => {
       console.log('[DASHBOARD] Polling for workflow updates...')
       
-      setRepos((currentRepos) => {
-        currentRepos.forEach((repo) => {
-          Promise.all([
-            fetchWorkflowRuns(repo.full_name, accessToken),
-          ]).then(([workflowRuns]) => {
-            // Fetch jobs for each workflow run
-            Promise.all(
+      const updatedRepos = await Promise.all(
+        repos.map(async (repo) => {
+          try {
+            const workflowRuns = await fetchWorkflowRuns(repo.full_name, accessToken)
+            const jobsArray = await Promise.all(
               workflowRuns.map((run) => fetchWorkflowRunJobs(repo.full_name, run.id, accessToken))
-            ).then((jobsArray) => {
-              const runsWithJobs = workflowRuns.map((run, index) => ({
-                ...run,
-                jobs: jobsArray[index],
-              }))
-
-              console.log('[DASHBOARD] Updated workflow runs for', repo.name)
-
-              setRepos((prev) =>
-                prev.map((r) => (r.id === repo.id ? { ...r, workflowRuns: runsWithJobs } : r))
-              )
-            })
-          })
+            )
+            
+            const runsWithJobs = workflowRuns.map((run, index) => ({
+              ...run,
+              jobs: jobsArray[index],
+            }))
+            
+            console.log('[DASHBOARD] Updated workflow runs for', repo.name, '- count:', runsWithJobs.length)
+            
+            return { ...repo, workflowRuns: runsWithJobs }
+          } catch (error) {
+            console.error('[DASHBOARD] Error fetching workflows for', repo.name, error)
+            return repo
+          }
         })
-        return currentRepos
-      })
+      )
+      
+      setRepos(updatedRepos)
     }, 5000) // Poll every 5 seconds for near real-time updates
 
     return () => clearInterval(pollInterval)
-  }, [session])
+  }, [repos.length, session])
 
   return (
     <main className="min-h-screen bg-neutral-50">
