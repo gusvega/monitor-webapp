@@ -310,25 +310,6 @@ export default function Dashboard() {
               console.log('[DASHBOARD] Filtering: selectedRepoId=', selectedRepoId, 'total repos=', repos.length, 'display repos=', displayRepos.length)
               return (
                 <>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                      <p className="text-neutral-600 text-sm font-medium mb-2">Total Repositories</p>
-                      <p className="text-3xl font-bold text-neutral-900">{displayRepos.length}</p>
-                    </div>
-                    <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                      <p className="text-neutral-600 text-sm font-medium mb-2">With Stars</p>
-                      <p className="text-3xl font-bold text-neutral-900">
-                        {displayRepos.filter((r) => r.stars !== '0' && r.stars !== 'N/A').length}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                      <p className="text-neutral-600 text-sm font-medium mb-2">Languages</p>
-                      <p className="text-3xl font-bold text-neutral-900">
-                        {new Set(displayRepos.filter((r) => r.language !== 'N/A').map((r) => r.language)).size}
-                      </p>
-                    </div>
-                  </div>
-
                   {/* Repositories Grid */}
                   <div className="space-y-4">
                     {displayRepos.map((repo) => (
@@ -416,7 +397,9 @@ export default function Dashboard() {
                                 <p className="text-sm font-medium text-neutral-700 mb-2 capitalize">{env}</p>
                                 {data ? (
                                   <div>
-                                    <p className="text-xs font-semibold text-neutral-900 break-words">{data.tag}</p>
+                                    <p className="text-xs font-semibold text-neutral-900 break-words">
+                                      {env === 'test' ? data.tag.replace('refs/heads/', '') : data.tag}
+                                    </p>
                                     <p className="text-xs text-neutral-500 mt-1">{data.date}</p>
                                   </div>
                                 ) : (
