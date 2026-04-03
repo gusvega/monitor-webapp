@@ -534,123 +534,211 @@ export default function Dashboard() {
                                 )
                               })()}
                             </div>
+
+                            {/* Pipeline Runs - Show last 5 runs with boxes */}
+                            {(() => {
+                              const ciRuns = (repo.workflowRuns || [])
+                                .filter((run) => run.name?.includes('CI'))
+                                .slice(0, 5)
+
+                              return ciRuns.length > 0 ? (
+                                <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
+                                  <p className="text-xs font-semibold text-blue-700">Recent Runs</p>
+                                  {ciRuns.map((run) => {
+                                    const runJobs = (run.jobs || [])
+                                    const runStatus = runJobs.some(j => j.conclusion === 'failure')
+                                      ? 'failure'
+                                      : runJobs.some(j => !j.conclusion)
+                                      ? 'running'
+                                      : 'success'
+
+                                    return (
+                                      <div key={run.id} className="bg-blue-50 border border-blue-100 rounded p-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-blue-700 font-medium">{formatDate(run.created_at)}</span>
+                                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                                            runStatus === 'success'
+                                              ? 'bg-green-100 text-green-700'
+                                              : runStatus === 'failure'
+                                              ? 'bg-red-100 text-red-700'
+                                              : 'bg-yellow-100 text-yellow-700'
+                                          }`}>
+                                            {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              ) : null
+                            })()}
                           </div>
 
-                          {/* CD Pipeline - 3 columns */}
+                          {/* CD Pipeline - 3 columns, unified runs */}
                           <div className="col-span-3 bg-green-50 border border-green-200 rounded-lg p-4">
                             <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
-                            <div className="grid grid-cols-3 gap-3">
-                              {['dev', 'qat', 'prod'].map((env) => {
-                                const cdRuns = repo.workflowRuns
-                                  ?.filter((run) => run.name?.includes('CD'))
-                                  .slice(0, 5) || []
+                            {(() => {
+                              const cdRuns = repo.workflowRuns
+                                ?.filter((run) => run.name?.includes('CD'))
+                                .slice(0, 5) || []
 
-                                return (
-                                  <div key={env} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                                    <p className="text-sm font-semibold text-neutral-700 mb-3 capitalize">{env}</p>
-                                    {cdRuns.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {cdRuns.map((run) => {
-                                          const envJobs = (run.jobs || []).filter((job) => {
-                                            if (env === 'dev') return job.name.includes('dev') || job.name === 'Deploy to Dev'
-                                            if (env === 'qat') return job.name.includes('qat') || job.name === 'Deploy to QAT'
-                                            if (env === 'prod') return job.name.includes('prod') || job.name === 'Deploy to Prod'
-                                            return false
-                                          })
+                              return cdRuns.length > 0 ? (
+                                <div className="space-y-3">
+                                  {cdRuns.map((run) => {
+                                    const isExpanded = expandedCdRuns[repo.id] === run.id
+                                    const versionJob = (run.jobs || []).find(j => j.name?.includes('version') || j.name === 'Create Semantic Version')
+                                    const allDeployJobs = (run.jobs || []).filter((job) => 
+                                      job.name.includes('deploy') || 
+                                      job.name.includes('Deploy') ||
+                                      ['dev', 'qat', 'prod'].some(env => job.name.toLowerCase().includes(env))
+                                    )
+                                    
+                                    const overallStatus = allDeployJobs.some(j => j.conclusion === 'failure')
+                                      ? 'failure'
+                                      : allDeployJobs.some(j => !j.conclusion)
+                                      ? 'running'
+                                      : 'success'
 
-                                          if (envJobs.length === 0) return null
+                                    return (
+                                      <div key={run.id} className="bg-white border border-green-200 rounded-lg p-4">
+                                        <button
+                                          onClick={() =>
+                                            setExpandedCdRuns((prev) => ({
+                                              ...prev,
+                                              [repo.id]: isExpanded ? null : run.id,
+                                            }))
+                                          }
+                                          className="w-full flex items-center justify-between hover:bg-green-50 p-2 rounded transition-colors"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <div className="text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
+                                            <span className="text-xs font-semibold text-green-700">
+                                              {formatDate(run.created_at)}
+                                            </span>
+                                            {!isExpanded && (
+                                              <div className="flex items-center gap-1">
+                                                {versionJob && (
+                                                  <div className="flex items-center">
+                                                    {versionJob.conclusion === 'success' ? (
+                                                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                    ) : versionJob.conclusion === 'failure' ? (
+                                                      <X className="w-3.5 h-3.5 text-red-500" />
+                                                    ) : versionJob.conclusion === 'skipped' ? (
+                                                      <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
+                                                    ) : (
+                                                      <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                    )}
+                                                  </div>
+                                                )}
+                                                {allDeployJobs.map((job) => (
+                                                  <div key={job.id} className="flex items-center">
+                                                    {job.conclusion === 'success' ? (
+                                                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                    ) : job.conclusion === 'failure' ? (
+                                                      <X className="w-3.5 h-3.5 text-red-500" />
+                                                    ) : job.conclusion === 'skipped' ? (
+                                                      <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
+                                                    ) : (
+                                                      <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <span
+                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${
+                                              overallStatus === 'success'
+                                                ? 'bg-green-100 text-green-700'
+                                                : overallStatus === 'failure'
+                                                ? 'bg-red-100 text-red-700'
+                                                : 'bg-yellow-100 text-yellow-700'
+                                            }`}
+                                          >
+                                            <span>
+                                              {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
+                                            </span>
+                                            {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
+                                          </span>
+                                        </button>
 
-                                          const isExpanded = expandedCdRuns[repo.id] === run.id
-                                          const overallStatus = envJobs.some(j => j.conclusion === 'failure')
-                                            ? 'failure'
-                                            : envJobs.some(j => !j.conclusion)
-                                            ? 'running'
-                                            : 'success'
-
-                                          return (
-                                            <div key={run.id} className="bg-white border border-green-200 rounded p-3">
-                                              <button
-                                                onClick={() =>
-                                                  setExpandedCdRuns((prev) => ({
-                                                    ...prev,
-                                                    [repo.id]: isExpanded ? null : run.id,
-                                                  }))
-                                                }
-                                                className="w-full text-left flex items-center justify-between hover:bg-green-50 p-2 rounded transition-colors -m-2 p-2"
-                                              >
-                                                <div className="flex items-center gap-2">
-                                                  <div className="text-lg">{isExpanded ? '▼' : '▶'}</div>
-                                                  <span className="text-xs font-semibold text-green-700">
-                                                    {formatDate(run.created_at)}
-                                                  </span>
-                                                  {!isExpanded && (
-                                                    <div className="flex items-center gap-1">
-                                                      {envJobs.map((job) => (
-                                                        <div key={job.id}>
-                                                          {job.conclusion === 'success' ? (
-                                                            <CheckCircle className="w-3 h-3 text-green-600" />
-                                                          ) : job.conclusion === 'failure' ? (
-                                                            <X className="w-3 h-3 text-red-500" />
-                                                          ) : job.conclusion === 'skipped' ? (
-                                                            <div className="w-3 h-3 rounded-full bg-gray-400" />
-                                                          ) : (
-                                                            <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                                                          )}
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  )}
+                                        {isExpanded && (
+                                          <div className="mt-4 pt-4 border-t border-green-100">
+                                            {/* Version Job */}
+                                            {versionJob && (
+                                              <div className="mb-4">
+                                                <p className="text-xs font-semibold text-neutral-700 mb-2">Version</p>
+                                                <div className="flex items-center gap-2 py-1.5 px-2 bg-green-50 hover:bg-green-100 rounded transition-colors">
+                                                  <div>
+                                                    {versionJob.conclusion === 'success' ? (
+                                                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                                    ) : versionJob.conclusion === 'failure' ? (
+                                                      <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                    ) : versionJob.conclusion === 'skipped' ? (
+                                                      <div className="w-4 h-4 rounded-full bg-gray-400 flex-shrink-0" />
+                                                    ) : (
+                                                      <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
+                                                    )}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-neutral-700">{versionJob.name}</p>
+                                                    <p className="text-xs text-neutral-500">{formatDate(versionJob.completed_at)}</p>
+                                                  </div>
                                                 </div>
-                                                <span
-                                                  className={`text-xs font-medium px-2 py-1 rounded ${
-                                                    overallStatus === 'success'
-                                                      ? 'bg-green-100 text-green-700'
-                                                      : overallStatus === 'failure'
-                                                      ? 'bg-red-100 text-red-700'
-                                                      : 'bg-yellow-100 text-yellow-700'
-                                                  }`}
-                                                >
-                                                  <span className="inline-block mr-1">
-                                                    {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
-                                                  </span>
-                                                  {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
-                                                </span>
-                                              </button>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Deployments by Environment */}
+                                            <div className="grid grid-cols-3 gap-3">
+                                              {['dev', 'qat', 'prod'].map((env) => {
+                                                const envJobs = allDeployJobs.filter((job) => {
+                                                  if (env === 'dev') return job.name.includes('dev') || job.name === 'Deploy to Dev'
+                                                  if (env === 'qat') return job.name.includes('qat') || job.name === 'Deploy to QAT'
+                                                  if (env === 'prod') return job.name.includes('prod') || job.name === 'Deploy to Prod'
+                                                  return false
+                                                })
 
-                                              {isExpanded && (
-                                                <div className="mt-3 pt-3 border-t border-green-100 space-y-2">
-                                                  {envJobs.map((job) => (
-                                                    <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 hover:bg-green-50 rounded transition-colors">
-                                                      <div>
-                                                        {job.conclusion === 'success' ? (
-                                                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                                                        ) : job.conclusion === 'failure' ? (
-                                                          <X className="w-4 h-4 text-red-500 flex-shrink-0" />
-                                                        ) : job.conclusion === 'skipped' ? (
-                                                          <div className="w-4 h-4 rounded-full bg-gray-400 flex-shrink-0" />
-                                                        ) : (
-                                                          <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
-                                                        )}
+                                                return (
+                                                  <div key={env} className="bg-neutral-50 border border-neutral-200 rounded p-3">
+                                                    <p className="text-xs font-semibold text-neutral-700 mb-2 capitalize">{env}</p>
+                                                    {envJobs.length > 0 ? (
+                                                      <div className="space-y-1">
+                                                        {envJobs.map((job) => (
+                                                          <div key={job.id} className="flex items-center gap-2">
+                                                            <div>
+                                                              {job.conclusion === 'success' ? (
+                                                                <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                              ) : job.conclusion === 'failure' ? (
+                                                                <X className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                                              ) : job.conclusion === 'skipped' ? (
+                                                                <div className="w-3 h-3 rounded-full bg-gray-400 flex-shrink-0" />
+                                                              ) : (
+                                                                <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
+                                                              )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                              <p className="text-xs text-neutral-700 truncate">{job.name}</p>
+                                                            </div>
+                                                          </div>
+                                                        ))}
                                                       </div>
-                                                      <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
-                                                        <p className="text-xs text-neutral-500">{formatDate(job.completed_at)}</p>
-                                                      </div>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )}
+                                                    ) : (
+                                                      <p className="text-xs text-neutral-500">No jobs</p>
+                                                    )}
+                                                  </div>
+                                                )
+                                              })}
                                             </div>
-                                          )
-                                        })}
+                                          </div>
+                                        )}
                                       </div>
-                                    ) : (
-                                      <p className="text-xs text-neutral-500">No CD runs yet</p>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
+                                    )
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-neutral-500">No CD runs yet</p>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
