@@ -12,13 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate semantic version
+      - name: Generate and create semantic version tag
         id: version
         run: |
           # Get the latest tag or start from v0.0.0
@@ -36,6 +38,12 @@ jobs:
           
           echo "Generated new tag: $NEW_TAG"
           echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          
+          # Create and push the tag
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
 
   deploy:
     needs: version
