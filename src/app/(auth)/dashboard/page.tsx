@@ -539,9 +539,9 @@ export default function Dashboard() {
                             {/* Last CI Run - Debug Display */}
                             {(() => {
                               const lastCiRun = (repo.workflowRuns || [])
-                                .find((run) => run.name?.includes('CI') || run.name?.includes('Promote'))
+                                .find((run) => run.name?.includes('Validate') || run.name?.includes('CI'))
                               
-                              if (!lastCiRun) return <p className="text-xs text-gray-400 mt-2">No CI runs (create a PR to trigger)</p>
+                              if (!lastCiRun) return <p className="text-xs text-gray-400 mt-2">No CI runs found. All runs: {repo.workflowRuns?.map(r => r.name).join(', ')}</p>
                               
                               return (
                                 <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
@@ -555,9 +555,9 @@ export default function Dashboard() {
                             {/* Pipeline Runs - Collapsible boxes like CD workflow */}
                             {(() => {
                               const ciRuns = (repo.workflowRuns || [])
-                                .filter((run) => run.name?.includes('CI'))
+                                .filter((run) => run.name?.includes('Validate') || run.name?.includes('CI'))
                                 .slice(0, 5)
-                              console.log('[CI BOXES DEBUG]', { repo: repo.name, totalRuns: repo.workflowRuns?.length, ciRunsFiltered: ciRuns.length, runNames: repo.workflowRuns?.map(r => r.name).slice(0, 3) })
+                              console.log('[CI BOXES DEBUG]', { repo: repo.name, totalRuns: repo.workflowRuns?.length, ciRunsFiltered: ciRuns.length, runNames: repo.workflowRuns?.map(r => r.name) })
 
                               return ciRuns.length > 0 ? (
                                 <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
