@@ -11,7 +11,24 @@ const recentEvents: Array<{
 export async function POST(request: NextRequest) {
   try {
     const signature = request.headers.get('x-hub-signature-256') || ''
-    const payload = await request.text()
+    const contentType = request.headers.get('content-type') || ''
+    
+    let payload: string
+    
+    // Handle both JSON and form-encoded payloads
+    if (contentType.includes('application/json')) {
+      payload = await request.text()
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      // GitHub sends form data with a 'payload' field
+      const formData = await request.formData()
+      payload = formData.get('payload') as string
+      if (!payload) {
+        console.error('[WEBHOOK] No payload field in form data')
+        return NextResponse.json({ error: 'No payload in form data' }, { status: 400 })
+      }
+    } else {
+      payload = await request.text()
+    }
 
     // Verify webhook signature
     const crypto = await import('crypto')
