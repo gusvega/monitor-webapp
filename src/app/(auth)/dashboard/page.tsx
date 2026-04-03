@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [deploymentLoading, setDeploymentLoading] = useState<Record<number, boolean>>({})
   const [error, setError] = useState<string | null>(null)
   const [expandedCiRuns, setExpandedCiRuns] = useState<Record<number, boolean>>({})
+  const [expandedCdRuns, setExpandedCdRuns] = useState<Record<number, number | null>>({})
 
   useEffect(() => {
     console.log('[DASHBOARD] Effect running - loading repos')
@@ -540,53 +541,111 @@ export default function Dashboard() {
                             <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
                             <div className="grid grid-cols-3 gap-3">
                               {['dev', 'qat', 'prod'].map((env) => {
-                                const cdJobs: (WorkflowJob & { runName: string; runId: number })[] = []
-                                repo.workflowRuns.forEach((run) => {
-                                  if (run.name?.includes('CD') && run.jobs) {
-                                    run.jobs.forEach((job) => {
-                                      let jobEnv = null
-                                      if (job.name.includes('dev') || job.name === 'Deploy to Dev') jobEnv = 'dev'
-                                      else if (job.name.includes('qat') || job.name === 'Deploy to QAT') jobEnv = 'qat'
-                                      else if (job.name.includes('prod') || job.name === 'Deploy to Prod') jobEnv = 'prod'
-                                      
-                                      if (jobEnv === env) {
-                                        cdJobs.push({
-                                          ...job,
-                                          runName: run.name,
-                                          runId: run.id,
-                                        })
-                                      }
-                                    })
-                                  }
-                                })
+                                const cdRuns = repo.workflowRuns
+                                  ?.filter((run) => run.name?.includes('CD'))
+                                  .slice(0, 5) || []
 
                                 return (
-                                  <div key={env} className="bg-neutral-50 rounded p-4">
+                                  <div key={env} className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
                                     <p className="text-sm font-semibold text-neutral-700 mb-3 capitalize">{env}</p>
-                                    {cdJobs.length > 0 ? (
+                                    {cdRuns.length > 0 ? (
                                       <div className="space-y-2">
-                                        {cdJobs.map((job) => (
-                                          <div key={job.id} className="flex items-start gap-2 text-xs">
-                                            <div className="mt-0.5">
-                                              {job.conclusion === 'success' ? (
-                                                <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
-                                              ) : job.conclusion === 'failure' ? (
-                                                <X className="w-3 h-3 text-red-500 flex-shrink-0" />
-                                              ) : job.conclusion === 'skipped' ? (
-                                                <div className="w-3 h-3 rounded-full bg-gray-400 flex-shrink-0" />
-                                              ) : (
-                                                <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
+                                        {cdRuns.map((run) => {
+                                          const envJobs = (run.jobs || []).filter((job) => {
+                                            if (env === 'dev') return job.name.includes('dev') || job.name === 'Deploy to Dev'
+                                            if (env === 'qat') return job.name.includes('qat') || job.name === 'Deploy to QAT'
+                                            if (env === 'prod') return job.name.includes('prod') || job.name === 'Deploy to Prod'
+                                            return false
+                                          })
+
+                                          if (envJobs.length === 0) return null
+
+                                          const isExpanded = expandedCdRuns[repo.id] === run.id
+                                          const overallStatus = envJobs.every(j => j.conclusion === 'success')
+                                            ? 'success'
+                                            : envJobs.some(j => j.conclusion === 'failure')
+                                            ? 'failure'
+                                            : 'running'
+
+                                          return (
+                                            <div key={run.id} className="bg-white border border-green-200 rounded p-3">
+                                              <button
+                                                onClick={() =>
+                                                  setExpandedCdRuns((prev) => ({
+                                                    ...prev,
+                                                    [repo.id]: isExpanded ? null : run.id,
+                                                  }))
+                                                }
+                                                className="w-full text-left flex items-center justify-between hover:bg-green-50 p-2 rounded transition-colors -m-2 p-2"
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <div className="text-lg">{isExpanded ? '▼' : '▶'}</div>
+                                                  <span className="text-xs font-semibold text-green-700">
+                                                    {formatDate(run.created_at)}
+                                                  </span>
+                                                  {!isExpanded && (
+                                                    <div className="flex items-center gap-1">
+                                                      {envJobs.map((job) => (
+                                                        <div key={job.id}>
+                                                          {job.conclusion === 'success' ? (
+                                                            <CheckCircle className="w-3 h-3 text-green-600" />
+                                                          ) : job.conclusion === 'failure' ? (
+                                                            <X className="w-3 h-3 text-red-500" />
+                                                          ) : job.conclusion === 'skipped' ? (
+                                                            <div className="w-3 h-3 rounded-full bg-gray-400" />
+                                                          ) : (
+                                                            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                                                          )}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                <span
+                                                  className={`text-xs font-medium px-2 py-1 rounded ${
+                                                    overallStatus === 'success'
+                                                      ? 'bg-green-100 text-green-700'
+                                                      : overallStatus === 'failure'
+                                                      ? 'bg-red-100 text-red-700'
+                                                      : 'bg-yellow-100 text-yellow-700'
+                                                  }`}
+                                                >
+                                                  <span className="inline-block mr-1">
+                                                    {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
+                                                  </span>
+                                                  {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
+                                                </span>
+                                              </button>
+
+                                              {isExpanded && (
+                                                <div className="mt-3 pt-3 border-t border-green-100 space-y-2">
+                                                  {envJobs.map((job) => (
+                                                    <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 hover:bg-green-50 rounded transition-colors">
+                                                      <div>
+                                                        {job.conclusion === 'success' ? (
+                                                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                                        ) : job.conclusion === 'failure' ? (
+                                                          <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                        ) : job.conclusion === 'skipped' ? (
+                                                          <div className="w-4 h-4 rounded-full bg-gray-400 flex-shrink-0" />
+                                                        ) : (
+                                                          <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
+                                                        )}
+                                                      </div>
+                                                      <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
+                                                        <p className="text-xs text-neutral-500">{formatDate(job.completed_at)}</p>
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
                                               )}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-neutral-700 font-medium truncate">{job.name}</p>
-                                              <p className="text-neutral-500 text-xs">{formatDate(job.completed_at)}</p>
-                                            </div>
-                                          </div>
-                                        ))}
+                                          )
+                                        })}
                                       </div>
                                     ) : (
-                                      <p className="text-xs text-neutral-500">No jobs yet</p>
+                                      <p className="text-xs text-neutral-500">No CD runs yet</p>
                                     )}
                                   </div>
                                 )
