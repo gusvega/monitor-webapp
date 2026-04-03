@@ -126,6 +126,36 @@ export function groupDeploymentsByEnvironment(deployments: GitHubDeployment[]) {
   return grouped
 }
 
+export async function fetchTags(
+  repoFullName: string,
+  accessToken: string
+): Promise<Array<{ name: string; commit: { sha: string } }>> {
+  try {
+    console.log('[GITHUB] Fetching tags for', repoFullName)
+    const response = await fetch(
+      `https://api.github.com/repos/${repoFullName}/tags?per_page=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      console.warn(`[GITHUB] Failed to fetch tags for ${repoFullName}:`, response.status)
+      return []
+    }
+
+    const tags = await response.json()
+    console.log('[GITHUB] Fetched', tags?.length || 0, 'tags for', repoFullName)
+    return tags || []
+  } catch (err) {
+    console.error(`[GITHUB] Error fetching tags for ${repoFullName}:`, err)
+    return []
+  }
+}
+
 export async function fetchWorkflowRuns(
   repoFullName: string,
   accessToken: string,
