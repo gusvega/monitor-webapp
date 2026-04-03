@@ -249,31 +249,34 @@ export default function Dashboard() {
     const pollInterval = setInterval(() => {
       console.log('[DASHBOARD] Polling for workflow updates...')
       
-      repos.forEach((repo) => {
-        Promise.all([
-          fetchWorkflowRuns(repo.full_name, accessToken),
-        ]).then(([workflowRuns]) => {
-          // Fetch jobs for each workflow run
-          Promise.all(
-            workflowRuns.map((run) => fetchWorkflowRunJobs(repo.full_name, run.id, accessToken))
-          ).then((jobsArray) => {
-            const runsWithJobs = workflowRuns.map((run, index) => ({
-              ...run,
-              jobs: jobsArray[index],
-            }))
+      setRepos((currentRepos) => {
+        currentRepos.forEach((repo) => {
+          Promise.all([
+            fetchWorkflowRuns(repo.full_name, accessToken),
+          ]).then(([workflowRuns]) => {
+            // Fetch jobs for each workflow run
+            Promise.all(
+              workflowRuns.map((run) => fetchWorkflowRunJobs(repo.full_name, run.id, accessToken))
+            ).then((jobsArray) => {
+              const runsWithJobs = workflowRuns.map((run, index) => ({
+                ...run,
+                jobs: jobsArray[index],
+              }))
 
-            console.log('[DASHBOARD] Updated workflow runs for', repo.name)
+              console.log('[DASHBOARD] Updated workflow runs for', repo.name)
 
-            setRepos((prev) =>
-              prev.map((r) => (r.id === repo.id ? { ...r, workflowRuns: runsWithJobs } : r))
-            )
+              setRepos((prev) =>
+                prev.map((r) => (r.id === repo.id ? { ...r, workflowRuns: runsWithJobs } : r))
+              )
+            })
           })
         })
+        return currentRepos
       })
     }, 30000) // Poll every 30 seconds
 
     return () => clearInterval(pollInterval)
-  }, [repos.length, session])
+  }, [session])
 
   return (
     <main className="min-h-screen bg-neutral-50">
