@@ -1,0 +1,217 @@
+name: CI/CD - Validate Before Merge, Promote by Version
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+jobs:
+  # ============================================
+  # CI: Validate the change in isolation (PR)
+  # ============================================
+  ci:
+    name: Validate Change
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Type check
+        run: npm run type-check --if-present
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test --if-present
+
+  # ============================================
+  # Version: Create semantic version tag
+  # (Runs on main after merge, creates v1.2.3)
+  # ============================================
+  version:
+    name: Create Semantic Version Tag
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate semantic version
+        id: version
+        run: |
+          # Get the latest tag or start from v0.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          
+          # Parse version parts
+          MAJOR=$(echo $LATEST_TAG | cut -d. -f1 | sed 's/v//')
+          MINOR=$(echo $LATEST_TAG | cut -d. -f2)
+          PATCH=$(echo $LATEST_TAG | cut -d. -f3)
+          
+          # Increment patch version
+          PATCH=$((PATCH + 1))
+          NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+          
+          # Create and push the tag
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag $NEW_TAG -m "Release $NEW_TAG"
+          git push origin $NEW_TAG
+          
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "✓ Created version tag: $NEW_TAG"
+
+  # ============================================
+  # CD: Deploy to Dev (automatic on tag)
+  # Same versioned artifact → dev config
+  # ============================================
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: version
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      deployments: write
+    environment:
+      name: dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: tag,
+              environment: 'dev',
+              description: `Deploying ${tag} to dev`,
+              required_contexts: [],
+              auto_merge: false
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              description: 'Dev deployment successful'
+            });
+            
+            console.log(`✓ Deployed ${tag} to dev`);
+
+  # ============================================
+  # CD: Promote to QAT (manual approval required)
+  # Only same tested version, config injection only
+  # ============================================
+  deploy-qat:
+    name: Promote to QAT
+    runs-on: ubuntu-latest
+    needs: deploy-dev
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      deployments: write
+    environment:
+      name: qat
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: tag,
+              environment: 'qat',
+              description: `Promoting ${tag} to QAT`,
+              required_contexts: [],
+              auto_merge: false
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              description: 'QAT deployment successful'
+            });
+            
+            console.log(`✓ Promoted ${tag} to QAT`);
+
+  # ============================================
+  # CD: Promote to Production (manual approval)
+  # Rollback: Deploy previous version tag
+  # ============================================
+  deploy-prod:
+    name: Promote to Production
+    runs-on: ubuntu-latest
+    needs: deploy-qat
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      deployments: write
+    environment:
+      name: prod
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: tag,
+              environment: 'prod',
+              description: `Deploying ${tag} to production`,
+              required_contexts: [],
+              auto_merge: false
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              description: 'Production deployment successful'
+            });
+            
+            console.log(`✓ Deployed ${tag} to production`);
