@@ -548,11 +548,11 @@ export default function Dashboard() {
                                 <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
                                   {ciRuns.map((run) => {
                                     const isExpanded = expandedCiRuns[repo.id] === run.id
-                                    // Deduplicate jobs by name to avoid showing the same job twice
-                                    const seenJobNames = new Set<string>()
+                                    // Deduplicate jobs by ID to avoid showing duplicates
+                                    const seenJobIds = new Set<number>()
                                     const runJobs = (run.jobs || []).filter((job) => {
-                                      if (seenJobNames.has(job.name)) return false
-                                      seenJobNames.add(job.name)
+                                      if (seenJobIds.has(job.id)) return false
+                                      seenJobIds.add(job.id)
                                       return true
                                     })
                                     const runStatus = runJobs.some(j => j.conclusion === 'failure')
