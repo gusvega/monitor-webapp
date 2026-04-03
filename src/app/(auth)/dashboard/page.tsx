@@ -424,70 +424,121 @@ export default function Dashboard() {
                       </div>
                     ) : null}
 
-                    {/* Workflow Runs Section - Jobs Organized by Environment */}
+                    {/* Workflow Runs Section - Pipelines */}
                     {repo.workflowRuns && repo.workflowRuns.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-neutral-200">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-4">
                           <Server className="w-4 h-4 text-neutral-600" />
-                          <p className="text-sm font-semibold text-neutral-900">Workflow Jobs by Environment</p>
+                          <p className="text-sm font-semibold text-neutral-900">Pipelines</p>
                         </div>
-                        <div className="grid grid-cols-4 gap-3">
-                          {STANDARD_ENVIRONMENTS.map((env) => {
-                            // Get jobs for this environment from all runs
-                            const jobsForEnv: (WorkflowJob & { runName: string; runId: number })[] = []
-                            repo.workflowRuns.forEach((run) => {
-                              if (run.jobs) {
-                                run.jobs.forEach((job) => {
-                                  // Map jobs to environments
-                                  let jobEnv = null
-                                  if (run.name === 'CI' || run.name === 'CI - Validate & Deploy to Test') {
-                                    jobEnv = 'test'
-                                  } else if (run.name === 'CD - Promote Release by Version') {
-                                    if (job.name.includes('dev') || job.name === 'Deploy to Dev') jobEnv = 'dev'
-                                    else if (job.name.includes('qat') || job.name === 'Deploy to QAT') jobEnv = 'qat'
-                                    else if (job.name.includes('prod') || job.name === 'Deploy to Prod') jobEnv = 'prod'
-                                  }
-                                  
-                                  if (jobEnv === env) {
-                                    jobsForEnv.push({
-                                      ...job,
-                                      runName: run.name,
-                                      runId: run.id,
+                        
+                        <div className="space-y-4">
+                          {/* CI Pipeline */}
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p className="text-sm font-bold text-blue-900 mb-3">CI Workflow</p>
+                            <div className="grid grid-cols-1 gap-3">
+                              {(() => {
+                                const ciJobs: (WorkflowJob & { runName: string; runId: number })[] = []
+                                repo.workflowRuns.forEach((run) => {
+                                  if ((run.name === 'CI' || run.name === 'CI - Validate & Deploy to Test') && run.jobs) {
+                                    run.jobs.forEach((job) => {
+                                      ciJobs.push({
+                                        ...job,
+                                        runName: run.name,
+                                        runId: run.id,
+                                      })
                                     })
                                   }
                                 })
-                              }
-                            })
 
-                            return (
-                              <div key={env} className="bg-neutral-50 rounded p-4">
-                                <p className="text-sm font-semibold text-neutral-700 mb-3 capitalize">{env}</p>
-                                {jobsForEnv.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {jobsForEnv.map((job) => (
-                                      <div key={job.id} className="flex items-start gap-2 text-xs">
-                                        <div className="mt-0.5">
-                                          {job.conclusion === 'success' ? (
-                                            <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
-                                          ) : job.conclusion === 'failure' ? (
-                                            <X className="w-3 h-3 text-red-500 flex-shrink-0" />
-                                          ) : (
-                                            <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
-                                          )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-neutral-700 font-medium truncate">{job.name}</p>
-                                          <p className="text-neutral-500 text-xs">{formatDate(job.completed_at)}</p>
-                                        </div>
+                                return (
+                                  <div className="bg-neutral-50 rounded p-4">
+                                    <p className="text-sm font-semibold text-neutral-700 mb-3 capitalize">test</p>
+                                    {ciJobs.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {ciJobs.map((job) => (
+                                          <div key={job.id} className="flex items-start gap-2 text-xs">
+                                            <div className="mt-0.5">
+                                              {job.conclusion === 'success' ? (
+                                                <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                              ) : job.conclusion === 'failure' ? (
+                                                <X className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                              ) : (
+                                                <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
+                                              )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-neutral-700 font-medium truncate">{job.name}</p>
+                                              <p className="text-neutral-500 text-xs">{formatDate(job.completed_at)}</p>
+                                            </div>
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
+                                    ) : (
+                                      <p className="text-xs text-neutral-500">No CI jobs yet</p>
+                                    )}
                                   </div>
-                                ) : (
-                                  <p className="text-xs text-neutral-500">No jobs yet</p>
-                                )}
-                              </div>
-                            )
-                          })}
+                                )
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* CD Pipeline */}
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
+                            <div className="grid grid-cols-3 gap-3">
+                              {['dev', 'qat', 'prod'].map((env) => {
+                                const cdJobs: (WorkflowJob & { runName: string; runId: number })[] = []
+                                repo.workflowRuns.forEach((run) => {
+                                  if (run.name === 'CD - Promote Release by Version' && run.jobs) {
+                                    run.jobs.forEach((job) => {
+                                      let jobEnv = null
+                                      if (job.name.includes('dev') || job.name === 'Deploy to Dev') jobEnv = 'dev'
+                                      else if (job.name.includes('qat') || job.name === 'Deploy to QAT') jobEnv = 'qat'
+                                      else if (job.name.includes('prod') || job.name === 'Deploy to Prod') jobEnv = 'prod'
+                                      
+                                      if (jobEnv === env) {
+                                        cdJobs.push({
+                                          ...job,
+                                          runName: run.name,
+                                          runId: run.id,
+                                        })
+                                      }
+                                    })
+                                  }
+                                })
+
+                                return (
+                                  <div key={env} className="bg-neutral-50 rounded p-4">
+                                    <p className="text-sm font-semibold text-neutral-700 mb-3 capitalize">{env}</p>
+                                    {cdJobs.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {cdJobs.map((job) => (
+                                          <div key={job.id} className="flex items-start gap-2 text-xs">
+                                            <div className="mt-0.5">
+                                              {job.conclusion === 'success' ? (
+                                                <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                              ) : job.conclusion === 'failure' ? (
+                                                <X className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                              ) : (
+                                                <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
+                                              )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-neutral-700 font-medium truncate">{job.name}</p>
+                                              <p className="text-neutral-500 text-xs">{formatDate(job.completed_at)}</p>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-neutral-500">No jobs yet</p>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
