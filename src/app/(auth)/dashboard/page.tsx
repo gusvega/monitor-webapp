@@ -503,10 +503,10 @@ export default function Dashboard() {
                                               [repo.id]: isExpanded ? null : run.id,
                                             }))
                                           }
-                                          className="w-full flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors -m-2"
+                                          className="w-full flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors"
                                         >
                                           <div className="flex items-center gap-2">
-                                            <div className="text-sm leading-none">{isExpanded ? '▼' : '▶'}</div>
+                                            <div className="text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
                                             <span className="text-xs font-semibold text-blue-700">{formatDate(run.created_at)}</span>
                                             {!isExpanded && (
                                               <div className="flex items-center gap-1">
