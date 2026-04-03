@@ -539,13 +539,14 @@ export default function Dashboard() {
                             {/* Last CI Run - Debug Display */}
                             {(() => {
                               const lastCiRun = (repo.workflowRuns || [])
-                                .find((run) => run.name?.includes('CI'))
+                                .find((run) => run.name?.includes('CI') || run.name?.includes('Promote'))
                               
-                              if (!lastCiRun) return <p className="text-xs text-gray-400 mt-2">No CI runs</p>
+                              if (!lastCiRun) return <p className="text-xs text-gray-400 mt-2">No CI runs (create a PR to trigger)</p>
                               
                               return (
                                 <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                                  <p className="font-semibold text-blue-700">Last CI Run: {formatDate(lastCiRun.created_at)}</p>
+                                  <p className="font-semibold text-blue-700">Last Run: {formatDate(lastCiRun.created_at)}</p>
+                                  <p className="text-gray-600">Name: {lastCiRun.name}</p>
                                   <p className="text-gray-600">Status: {lastCiRun.conclusion || 'in_progress'}</p>
                                 </div>
                               )
