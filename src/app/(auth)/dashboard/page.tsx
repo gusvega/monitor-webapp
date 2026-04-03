@@ -537,18 +537,25 @@ export default function Dashboard() {
 
                             {/* Pipeline Runs - Show last 5 runs with boxes */}
                             {(() => {
-                              const ciRunsByRun: Record<number, typeof repo.workflowRuns[0]> = {}
+                              // Get all unique CI runs from workflowRuns
+                              const ciRunIds = new Set<number>()
                               repo.workflowRuns?.forEach((run) => {
-                                if (run.name?.includes('CI') && !ciRunsByRun[run.id]) {
-                                  ciRunsByRun[run.id] = run
+                                if (run.name?.includes('CI')) {
+                                  ciRunIds.add(run.id)
                                 }
                               })
-                              const ciRuns = Object.values(ciRunsByRun).slice(0, 5)
+                              const ciRuns = Array.from(ciRunIds)
+                                .map((id) => repo.workflowRuns?.find((r) => r.id === id))
+                                .filter(Boolean)
+                                .slice(0, 5)
+
+                              console.log('[DASHBOARD] CI Runs found:', ciRuns.length, ciRuns.map((r) => r?.name))
 
                               return ciRuns.length > 0 ? (
                                 <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
-                                  <p className="text-xs font-semibold text-blue-700">Pipeline Runs</p>
+                                  <p className="text-xs font-semibold text-blue-700">Recent Pipeline Runs</p>
                                   {ciRuns.map((run) => {
+                                    if (!run) return null
                                     const runJobs = run.jobs || []
                                     const runStatus = runJobs.some(j => j.conclusion === 'failure')
                                       ? 'failure'
@@ -557,32 +564,34 @@ export default function Dashboard() {
                                       : 'success'
 
                                     return (
-                                      <div key={run.id} className="bg-white border border-blue-200 rounded p-2 space-y-1">
-                                        <div className="flex items-center justify-between">
+                                      <div key={run.id} className="bg-white border border-blue-200 rounded p-2">
+                                        <div className="flex items-center justify-between mb-1">
                                           <span className="text-xs font-medium text-blue-900">{formatDate(run.created_at)}</span>
-                                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-1 ${
+                                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
                                             runStatus === 'success'
                                               ? 'bg-green-100 text-green-700'
                                               : runStatus === 'failure'
                                               ? 'bg-red-100 text-red-700'
                                               : 'bg-yellow-100 text-yellow-700'
                                           }`}>
-                                            {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'} {runStatus}
+                                            {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
                                           </span>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                          {runJobs.slice(0, 3).map((job) => (
-                                            <div key={job.id} className="flex-1 text-xs truncate">
-                                              {job.conclusion === 'success' ? (
-                                                <CheckCircle className="w-3 h-3 text-green-600 inline mr-1" />
-                                              ) : job.conclusion === 'failure' ? (
-                                                <X className="w-3 h-3 text-red-500 inline mr-1" />
-                                              ) : job.conclusion === 'skipped' ? (
-                                                <div className="w-3 h-3 rounded-full bg-gray-400 inline-block mr-1" />
-                                              ) : (
-                                                <div className="w-3 h-3 rounded-full bg-yellow-400 inline-block mr-1" />
-                                              )}
-                                              <span className="text-neutral-700">{job.name}</span>
+                                        <div className="space-y-0.5">
+                                          {runJobs.slice(0, 2).map((job) => (
+                                            <div key={job.id} className="flex items-center gap-1 text-xs">
+                                              <div>
+                                                {job.conclusion === 'success' ? (
+                                                  <CheckCircle className="w-3 h-3 text-green-600" />
+                                                ) : job.conclusion === 'failure' ? (
+                                                  <X className="w-3 h-3 text-red-500" />
+                                                ) : job.conclusion === 'skipped' ? (
+                                                  <div className="w-3 h-3 rounded-full bg-gray-400" />
+                                                ) : (
+                                                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                                                )}
+                                              </div>
+                                              <span className="text-neutral-700 truncate">{job.name}</span>
                                             </div>
                                           ))}
                                         </div>
