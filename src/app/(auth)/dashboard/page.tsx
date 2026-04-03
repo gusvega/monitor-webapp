@@ -536,6 +536,7 @@ export default function Dashboard() {
                                             }`}
                                           >
                                             <span>{runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}</span>
+                                            {runStatus === 'success' ? 'Success' : runStatus === 'failure' ? 'Failed' : 'Running'}
                                           </span>
                                         </button>
 
