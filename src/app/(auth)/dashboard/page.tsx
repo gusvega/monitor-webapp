@@ -60,7 +60,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [deploymentLoading, setDeploymentLoading] = useState<Record<number, boolean>>({})
   const [error, setError] = useState<string | null>(null)
-  const [expandedCiRuns, setExpandedCiRuns] = useState<Record<number, boolean>>({})
+  const [expandedCiRuns, setExpandedCiRuns] = useState<Record<number, number | null>>({})
   const [expandedCdRuns, setExpandedCdRuns] = useState<Record<number, number | null>>({})
 
   useEffect(() => {
@@ -463,15 +463,15 @@ export default function Dashboard() {
                                         {/* Pipeline Run Box */}
                                         <div className="bg-white border-2 border-blue-200 rounded p-3">
                                           <button
-                                            onClick={() => setExpandedCiRuns((prev) => ({ ...prev, [repo.id]: !prev[repo.id] }))}
+                                            onClick={() => setExpandedCiRuns((prev) => ({ ...prev, [repo.id]: prev[repo.id] ? null : 0 }))}
                                             className="w-full text-left flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors -m-2 p-2"
                                           >
                                             <div className="flex items-center gap-3">
                                               <div className="text-lg">
-                                                {expandedCiRuns[repo.id] ? '▼' : '▶'}
+                                                {expandedCiRuns[repo.id] === 0 ? '▼' : '▶'}
                                               </div>
                                               <span className="text-xs font-semibold text-blue-700">Pipeline Run</span>
-                                              {!expandedCiRuns[repo.id] && (
+                                              {expandedCiRuns[repo.id] !== 0 && (
                                                 <div className="flex items-center gap-1.5 ml-2">
                                                   {ciJobs.map((job) => (
                                                     <div key={job.id}>
@@ -503,7 +503,7 @@ export default function Dashboard() {
                                             </span>
                                           </button>
                                           
-                                          {expandedCiRuns[repo.id] && (
+                                          {expandedCiRuns[repo.id] === 0 && (
                                             <div className="mt-3 pt-3 border-t border-blue-100 space-y-2">
                                               {ciJobs.map((job) => (
                                                 <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 hover:bg-blue-50 rounded transition-colors">
