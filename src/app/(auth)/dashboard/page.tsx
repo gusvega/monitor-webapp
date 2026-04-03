@@ -459,76 +459,7 @@ export default function Dashboard() {
 
                                 return (
                                   <>
-                                    {ciJobs.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {/* Pipeline Run Box */}
-                                        <div className="bg-white border-2 border-blue-200 rounded p-3">
-                                          <button
-                                            onClick={() => setExpandedCiRuns((prev) => ({ ...prev, [repo.id]: prev[repo.id] === -1 ? null : -1 }))}
-                                            className="w-full text-left flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors -m-2 p-2"
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <div className="text-lg">
-                                                {expandedCiRuns[repo.id] === -1 ? '▼' : '▶'}
-                                              </div>
-                                              <span className="text-xs font-semibold text-blue-700">Pipeline Run</span>
-                                              {expandedCiRuns[repo.id] !== -1 && (
-                                                <div className="flex items-center gap-1.5 ml-2">
-                                                  {ciJobs.map((job) => (
-                                                    <div key={job.id}>
-                                                      {job.conclusion === 'success' ? (
-                                                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                                      ) : job.conclusion === 'failure' ? (
-                                                        <X className="w-3.5 h-3.5 text-red-500" />
-                                                      ) : job.conclusion === 'skipped' ? (
-                                                        <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
-                                                      ) : (
-                                                        <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
-                                                      )}
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                            <span className={`text-xs font-medium px-2 py-1 rounded ${
-                                              ciJobs.some(j => j.conclusion === 'failure')
-                                                ? 'bg-red-100 text-red-700'
-                                                : ciJobs.some(j => !j.conclusion)
-                                                ? 'bg-yellow-100 text-yellow-700'
-                                                : 'bg-green-100 text-green-700'
-                                            }`}>
-                                              <span className="inline-block mr-1">
-                                                {ciJobs.some(j => j.conclusion === 'failure') ? '❌' : ciJobs.some(j => !j.conclusion) ? '⏳' : '✅'}
-                                              </span>
-                                              {ciJobs.some(j => j.conclusion === 'failure') ? 'Failed' : ciJobs.some(j => !j.conclusion) ? 'Running' : 'Success'}
-                                            </span>
-                                          </button>
-                                          
-                                          {expandedCiRuns[repo.id] === -1 && (
-                                            <div className="mt-3 pt-3 border-t border-blue-100 space-y-2">
-                                              {ciJobs.map((job) => (
-                                                <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 hover:bg-blue-50 rounded transition-colors">
-                                                  <div>
-                                                    {job.conclusion === 'success' ? (
-                                                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                                                    ) : job.conclusion === 'failure' ? (
-                                                      <X className="w-4 h-4 text-red-500 flex-shrink-0" />
-                                                    ) : job.conclusion === 'skipped' ? (
-                                                      <div className="w-4 h-4 rounded-full bg-gray-400 flex-shrink-0" />
-                                                    ) : (
-                                                      <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
-                                                    )}
-                                                  </div>
-                                                  <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
+                                    {ciJobs.length > 0 ? null : (
                                       <p className="text-xs text-neutral-500">No CI jobs yet</p>
                                     )}
                                   </>
