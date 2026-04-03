@@ -455,8 +455,7 @@ export default function Dashboard() {
                                 })
 
                                 return (
-                                  <div className="bg-neutral-50 rounded p-4">
-                                    <p className="text-sm font-semibold text-neutral-700 mb-3 capitalize">test</p>
+                                  <>
                                     {ciJobs.length > 0 ? (
                                       <div className="space-y-2">
                                         {/* Pipeline Run Box */}
@@ -490,7 +489,7 @@ export default function Dashboard() {
                                     ) : (
                                       <p className="text-xs text-neutral-500">No CI jobs yet</p>
                                     )}
-                                  </div>
+                                  </>
                                 )
                               })()}
                             </div>
