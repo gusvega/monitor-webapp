@@ -478,6 +478,8 @@ export default function Dashboard() {
                                                         <CheckCircle className="w-3.5 h-3.5 text-green-600" />
                                                       ) : job.conclusion === 'failure' ? (
                                                         <X className="w-3.5 h-3.5 text-red-500" />
+                                                      ) : job.conclusion === 'skipped' ? (
+                                                        <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
                                                       ) : (
                                                         <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
                                                       )}
@@ -509,6 +511,8 @@ export default function Dashboard() {
                                                       <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                                                     ) : job.conclusion === 'failure' ? (
                                                       <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                    ) : job.conclusion === 'skipped' ? (
+                                                      <div className="w-4 h-4 rounded-full bg-gray-400 flex-shrink-0" />
                                                     ) : (
                                                       <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
                                                     )}
@@ -568,6 +572,8 @@ export default function Dashboard() {
                                                 <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
                                               ) : job.conclusion === 'failure' ? (
                                                 <X className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                              ) : job.conclusion === 'skipped' ? (
+                                                <div className="w-3 h-3 rounded-full bg-gray-400 flex-shrink-0" />
                                               ) : (
                                                 <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
                                               )}
