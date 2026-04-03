@@ -376,40 +376,6 @@ export default function Dashboard() {
                           <p className="text-sm font-semibold text-neutral-600">Loading environments...</p>
                         </div>
                       </div>
-                    ) : repo.deployments ? (
-                      <div className="mt-4 pt-4 border-t border-neutral-200">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Server className="w-4 h-4 text-neutral-600" />
-                          <p className="text-sm font-semibold text-neutral-900">Environments</p>
-                        </div>
-                        <div className="grid grid-cols-4 gap-3">
-                          {STANDARD_ENVIRONMENTS.map((env) => {
-                            const data = repo.deployments?.[env]
-                            return (
-                              <div key={env} className="bg-neutral-50 rounded p-4 text-center">
-                                <div className="flex justify-center mb-3">
-                                  {data ? (
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                  ) : (
-                                    <X className="w-5 h-5 text-red-400" />
-                                  )}
-                                </div>
-                                <p className="text-sm font-medium text-neutral-700 mb-2 capitalize">{env}</p>
-                                {data ? (
-                                  <div>
-                                    <p className="text-xs font-semibold text-neutral-900 break-words">
-                                      {env === 'test' ? data.tag.replace('refs/heads/', '') : data.tag}
-                                    </p>
-                                    <p className="text-xs text-neutral-500 mt-1">{data.date}</p>
-                                  </div>
-                                ) : (
-                                  <p className="text-xs text-neutral-500">Not deployed</p>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
                     ) : null}
 
                     {/* Recent Deployments - Organized by Workflow Pipeline */}
@@ -442,7 +408,7 @@ export default function Dashboard() {
                                 return (
                                   <>
                                     {ciJobs.length > 0 ? (
-                                      <div className="space-y-2">
+                                      <div className="space-y-3">
                                         {/* Pipeline Run Box */}
                                         <div className="bg-white border-2 border-blue-200 rounded p-3">
                                           <button
@@ -517,9 +483,41 @@ export default function Dashboard() {
                                 )
                               })()}
                             </div>
-                          </div>
 
-                          {/* CD Pipeline - 3 columns, unified runs */}
+                            {/* Environments inside CI Workflow */}
+                            {repo.deployments && (
+                              <div className="mt-3 pt-3 border-t border-blue-200">
+                                <p className="text-xs font-semibold text-blue-700 mb-2">Deployments</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {STANDARD_ENVIRONMENTS.map((env) => {
+                                    const data = repo.deployments?.[env]
+                                    return (
+                                      <div key={env} className="bg-white border border-blue-100 rounded p-2 text-center">
+                                        <div className="flex justify-center mb-1">
+                                          {data ? (
+                                            <CheckCircle className="w-4 h-4 text-green-600" />
+                                          ) : (
+                                            <X className="w-4 h-4 text-red-400" />
+                                          )}
+                                        </div>
+                                        <p className="text-xs font-medium text-neutral-700 mb-1 capitalize">{env}</p>
+                                        {data ? (
+                                          <div>
+                                            <p className="text-xs font-semibold text-neutral-900 break-words">
+                                              {env === 'test' ? data.tag.replace('refs/heads/', '') : data.tag}
+                                            </p>
+                                            <p className="text-xs text-neutral-500">{data.date}</p>
+                                          </div>
+                                        ) : (
+                                          <p className="text-xs text-neutral-500">Not deployed</p>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           <div className="col-span-3 bg-green-50 border border-green-200 rounded-lg p-4">
                             <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
                             {(() => {
