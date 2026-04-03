@@ -443,7 +443,7 @@ export default function Dashboard() {
                               {(() => {
                                 const ciJobs: (WorkflowJob & { runName: string; runId: number })[] = []
                                 repo.workflowRuns.forEach((run) => {
-                                  if ((run.name === 'CI' || run.name === 'CI - Validate & Deploy to Test') && run.jobs) {
+                                  if (run.name?.includes('CI') && run.jobs) {
                                     run.jobs.forEach((job) => {
                                       ciJobs.push({
                                         ...job,
@@ -503,7 +503,7 @@ export default function Dashboard() {
                               {['dev', 'qat', 'prod'].map((env) => {
                                 const cdJobs: (WorkflowJob & { runName: string; runId: number })[] = []
                                 repo.workflowRuns.forEach((run) => {
-                                  if (run.name === 'CD - Promote Release by Version' && run.jobs) {
+                                  if (run.name?.includes('CD') && run.jobs) {
                                     run.jobs.forEach((job) => {
                                       let jobEnv = null
                                       if (job.name.includes('dev') || job.name === 'Deploy to Dev') jobEnv = 'dev'

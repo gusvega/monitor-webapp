@@ -181,46 +181,46 @@ export async function fetchTags(
 
 export async function fetchWorkflowRuns(
   repoFullName: string,
-  accessToken: string,
-  workflowNames: string[] = ['ci.yml', 'cd.yml', 'rollback.yml']
+  accessToken: string
 ): Promise<WorkflowRun[]> {
   try {
-    console.log('[GITHUB] Fetching workflow runs for', repoFullName, 'from workflows:', workflowNames)
+    console.log('[GITHUB] Fetching workflow runs for', repoFullName)
     
-    // Fetch from all specified workflows
-    const allRuns: WorkflowRun[] = []
-    
-    for (const workflowName of workflowNames) {
-      try {
-        const response = await fetch(
-          `https://api.github.com/repos/${repoFullName}/actions/workflows/${workflowName}/runs?per_page=5&status=completed`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: 'application/vnd.github.v3+json',
-            },
-          }
-        )
-
-        if (!response.ok) {
-          console.warn(`[GITHUB] Failed to fetch runs from ${workflowName}:`, response.status)
-          continue
-        }
-
-        const data = await response.json()
-        const runs = data.workflow_runs || []
-        console.log(`[GITHUB] Fetched ${runs.length} runs from ${workflowName}`)
-        allRuns.push(...runs)
-      } catch (err) {
-        console.warn(`[GITHUB] Error fetching runs from ${workflowName}:`, err)
+    // Fetch all recent workflow runs regardless of workflow
+    const response = await fetch(
+      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=20&status=completed`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
       }
+    )
+
+    if (!response.ok) {
+      console.warn(`[GITHUB] Failed to fetch workflow runs for ${repoFullName}:`, response.status)
+      return []
     }
+
+    const data = await response.json()
+    const allRuns = data.workflow_runs || []
     
-    // Sort by created_at descending and take the most recent 5
-    allRuns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    const recentRuns = allRuns.slice(0, 5)
+    // Filter for our three workflows by name
+    const filteredRuns = allRuns.filter((run: any) => 
+      run.name?.includes('CI') || 
+      run.name?.includes('CD') || 
+      run.name?.includes('Rollback') ||
+      run.name?.includes('rollback')
+    )
     
-    console.log('[GITHUB] Fetched total', allRuns.length, 'runs, returning', recentRuns.length, 'most recent for', repoFullName)
+    // Sort by created_at descending and take the most recent 10
+    filteredRuns.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    const recentRuns = filteredRuns.slice(0, 10)
+    
+    console.log('[GITHUB] Fetched', allRuns.length, 'total runs, filtered to', recentRuns.length, 'workflow runs for', repoFullName)
+    if (recentRuns.length > 0) {
+      console.log('[GITHUB] Recent run names:', recentRuns.map((r: any) => r.name))
+    }
     return recentRuns
   } catch (err) {
     console.error(`[GITHUB] Error fetching workflow runs for ${repoFullName}:`, err)
