@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { AlertCircle, CheckCircle, GitBranch, Loader, ExternalLink, Star, Server, X } from 'lucide-react'
 import Link from 'next/link'
-import UserGreeting from '@/components/UserGreeting'
 import { fetchDeployments, groupDeploymentsByEnvironment, fetchReleases, fetchWorkflowRuns, fetchTags, fetchWorkflowRunJobs, STANDARD_ENVIRONMENTS, type WorkflowRun, type WorkflowJob } from '@/lib/github'
 
 interface GitHubRepo {
@@ -269,8 +268,6 @@ export default function Dashboard() {
 
       {/* Content */}
       <div className="px-8 py-8 space-y-8">
-        <UserGreeting />
-
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -305,32 +302,12 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            {/* Summary Stats - show for selected repo or all repos if none selected */}
+            {/* Repositories Grid */}
             {(() => {
               const displayRepos = selectedRepoId ? repos.filter(r => r.id === selectedRepoId) : repos
               console.log('[DASHBOARD] Filtering: selectedRepoId=', selectedRepoId, 'total repos=', repos.length, 'display repos=', displayRepos.length)
               return (
                 <>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                      <p className="text-neutral-600 text-sm font-medium mb-2">Total Repositories</p>
-                      <p className="text-3xl font-bold text-neutral-900">{displayRepos.length}</p>
-                    </div>
-                    <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                      <p className="text-neutral-600 text-sm font-medium mb-2">With Stars</p>
-                      <p className="text-3xl font-bold text-neutral-900">
-                        {displayRepos.filter((r) => r.stars !== '0' && r.stars !== 'N/A').length}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg border border-neutral-200 p-6">
-                      <p className="text-neutral-600 text-sm font-medium mb-2">Languages</p>
-                      <p className="text-3xl font-bold text-neutral-900">
-                        {new Set(displayRepos.filter((r) => r.language !== 'N/A').map((r) => r.language)).size}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Repositories Grid */}
                   <div className="space-y-4">
                     {displayRepos.map((repo) => (
                 <div
