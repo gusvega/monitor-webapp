@@ -186,9 +186,9 @@ export async function fetchWorkflowRuns(
   try {
     console.log('[GITHUB] Fetching workflow runs for', repoFullName)
     
-    // Fetch all recent workflow runs regardless of workflow
+    // Fetch all recent workflow runs regardless of workflow - remove status filter to catch all runs
     const response = await fetch(
-      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=20&status=completed`,
+      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=50`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -204,13 +204,15 @@ export async function fetchWorkflowRuns(
 
     const data = await response.json()
     const allRuns = data.workflow_runs || []
+    console.log('[GITHUB] All runs returned from API:', allRuns.map((r: any) => ({ name: r.name, status: r.status, conclusion: r.conclusion })))
     
     // Filter for our three workflows by name
     const filteredRuns = allRuns.filter((run: any) => 
       run.name?.includes('CI') || 
       run.name?.includes('CD') || 
       run.name?.includes('Rollback') ||
-      run.name?.includes('rollback')
+      run.name?.includes('rollback') ||
+      run.name?.includes('Validate')
     )
     
     // Sort by created_at descending and take the most recent 10
