@@ -118,20 +118,30 @@ export function groupDeploymentsByEnvironment(deployments: GitHubDeployment[]) {
   
   console.log('[GITHUB] Grouping', deployments.length, 'deployments by environment')
   
+  // Map environment names to standard environments
+  const normalizeEnvironment = (env: string): string => {
+    if (env.startsWith('test-pr-')) return 'test'
+    return env
+  }
+  
   // Get the most recent deployment for each environment
   for (const deployment of deployments) {
+    const normalizedEnv = normalizeEnvironment(deployment.environment)
+    
     console.log('[GITHUB] Processing deployment:', {
       id: deployment.id,
       environment: deployment.environment,
+      normalizedEnv: normalizedEnv,
       state: deployment.state,
       ref: deployment.ref,
     })
     
     // Accept any state - we'll show what we have
-    if (!grouped[deployment.environment] || 
-        new Date(deployment.updated_at) > new Date(grouped[deployment.environment].updated_at)) {
-      grouped[deployment.environment] = deployment
-      console.log('[GITHUB] Updated environment', deployment.environment, 'with deployment', deployment.id)
+    // For PR environments, keep the most recent one regardless
+    if (!grouped[normalizedEnv] || 
+        new Date(deployment.updated_at) > new Date(grouped[normalizedEnv].updated_at)) {
+      grouped[normalizedEnv] = deployment
+      console.log('[GITHUB] Updated environment', normalizedEnv, 'with deployment', deployment.id)
     }
   }
   
@@ -172,29 +182,46 @@ export async function fetchTags(
 export async function fetchWorkflowRuns(
   repoFullName: string,
   accessToken: string,
-  workflowName: string = 'deploy.yml'
+  workflowNames: string[] = ['ci.yml', 'cd.yml', 'rollback.yml']
 ): Promise<WorkflowRun[]> {
   try {
-    console.log('[GITHUB] Fetching workflow runs for', repoFullName)
-    const response = await fetch(
-      `https://api.github.com/repos/${repoFullName}/actions/workflows/${workflowName}/runs?per_page=3&status=completed`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
+    console.log('[GITHUB] Fetching workflow runs for', repoFullName, 'from workflows:', workflowNames)
+    
+    // Fetch from all specified workflows
+    const allRuns: WorkflowRun[] = []
+    
+    for (const workflowName of workflowNames) {
+      try {
+        const response = await fetch(
+          `https://api.github.com/repos/${repoFullName}/actions/workflows/${workflowName}/runs?per_page=5&status=completed`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        )
+
+        if (!response.ok) {
+          console.warn(`[GITHUB] Failed to fetch runs from ${workflowName}:`, response.status)
+          continue
+        }
+
+        const data = await response.json()
+        const runs = data.workflow_runs || []
+        console.log(`[GITHUB] Fetched ${runs.length} runs from ${workflowName}`)
+        allRuns.push(...runs)
+      } catch (err) {
+        console.warn(`[GITHUB] Error fetching runs from ${workflowName}:`, err)
       }
-    )
-
-    if (!response.ok) {
-      console.warn(`[GITHUB] Failed to fetch workflow runs for ${repoFullName}:`, response.status)
-      return []
     }
-
-    const data = await response.json()
-    const runs = data.workflow_runs || []
-    console.log('[GITHUB] Fetched', runs.length, 'workflow runs for', repoFullName)
-    return runs
+    
+    // Sort by created_at descending and take the most recent 5
+    allRuns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    const recentRuns = allRuns.slice(0, 5)
+    
+    console.log('[GITHUB] Fetched total', allRuns.length, 'runs, returning', recentRuns.length, 'most recent for', repoFullName)
+    return recentRuns
   } catch (err) {
     console.error(`[GITHUB] Error fetching workflow runs for ${repoFullName}:`, err)
     return []
