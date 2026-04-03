@@ -60,6 +60,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [deploymentLoading, setDeploymentLoading] = useState<Record<number, boolean>>({})
   const [error, setError] = useState<string | null>(null)
+  const [expandedCiRuns, setExpandedCiRuns] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     console.log('[DASHBOARD] Effect running - loading repos')
@@ -460,30 +461,50 @@ export default function Dashboard() {
                                       <div className="space-y-2">
                                         {/* Pipeline Run Box */}
                                         <div className="bg-white border-2 border-blue-200 rounded p-3">
-                                          <div className="flex items-center justify-between mb-3">
-                                            <span className="text-xs font-semibold text-blue-700">Pipeline Run</span>
-                                            <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-700 rounded">
+                                          <button
+                                            onClick={() => setExpandedCiRuns((prev) => ({ ...prev, [repo.id]: !prev[repo.id] }))}
+                                            className="w-full text-left flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors -m-2 p-2"
+                                          >
+                                            <div className="flex items-center gap-3">
+                                              <div className="text-lg">
+                                                {expandedCiRuns[repo.id] ? '▼' : '▶'}
+                                              </div>
+                                              <span className="text-xs font-semibold text-blue-700">Pipeline Run</span>
+                                            </div>
+                                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                                              ciJobs.every(j => j.conclusion === 'success') 
+                                                ? 'bg-green-100 text-green-700' 
+                                                : ciJobs.some(j => j.conclusion === 'failure')
+                                                ? 'bg-red-100 text-red-700'
+                                                : 'bg-yellow-100 text-yellow-700'
+                                            }`}>
+                                              <span className="inline-block mr-1">
+                                                {ciJobs.every(j => j.conclusion === 'success') ? '✅' : ciJobs.some(j => j.conclusion === 'failure') ? '❌' : '⏳'}
+                                              </span>
                                               {ciJobs.every(j => j.conclusion === 'success') ? 'Success' : ciJobs.some(j => j.conclusion === 'failure') ? 'Failed' : 'Running'}
                                             </span>
-                                          </div>
-                                          <div className="space-y-2">
-                                            {ciJobs.map((job) => (
-                                              <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 hover:bg-blue-50 rounded transition-colors">
-                                                <div>
-                                                  {job.conclusion === 'success' ? (
-                                                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                                                  ) : job.conclusion === 'failure' ? (
-                                                    <X className="w-4 h-4 text-red-500 flex-shrink-0" />
-                                                  ) : (
-                                                    <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
-                                                  )}
+                                          </button>
+                                          
+                                          {expandedCiRuns[repo.id] && (
+                                            <div className="mt-3 pt-3 border-t border-blue-100 space-y-2">
+                                              {ciJobs.map((job) => (
+                                                <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 hover:bg-blue-50 rounded transition-colors">
+                                                  <div>
+                                                    {job.conclusion === 'success' ? (
+                                                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                                    ) : job.conclusion === 'failure' ? (
+                                                      <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                    ) : (
+                                                      <div className="w-4 h-4 rounded-full bg-yellow-400 flex-shrink-0" />
+                                                    )}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
+                                                  </div>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                  <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
+                                              ))}
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
                                     ) : (
