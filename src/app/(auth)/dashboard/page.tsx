@@ -194,6 +194,7 @@ export default function Dashboard() {
           }))
 
           console.log('[DASHBOARD] Runs with jobs for', repo.name, ':', runsWithJobs)
+          console.log('[DASHBOARD] CI runs from this data:', runsWithJobs.filter((r: any) => r.name?.includes('CI')))
 
           setRepos((prev) =>
             prev.map((r) => (r.id === repo.id ? { ...r, deployments: deploymentData, workflowRuns: runsWithJobs } : r))
