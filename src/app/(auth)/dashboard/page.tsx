@@ -555,6 +555,7 @@ export default function Dashboard() {
                                       seenJobNames.add(job.name)
                                       return true
                                     })
+                                    console.log(`[CI JOB DEDUP] Run ${run.id}: total jobs=${run.jobs?.length}, after dedup=${runJobs.length}`, runJobs.map(j => j.name))
                                     const runStatus = runJobs.some(j => j.conclusion === 'failure')
                                       ? 'failure'
                                       : runJobs.some(j => !j.conclusion)
