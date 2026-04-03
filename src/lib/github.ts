@@ -186,9 +186,9 @@ export async function fetchWorkflowRuns(
   try {
     console.log('[GITHUB] Fetching workflow runs for', repoFullName)
     
-    // Fetch all recent workflow runs (100 per page to catch both push and pull_request events)
-    const response = await fetch(
-      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=100&exclude_pull_requests=false`,
+    // Fetch CD runs (push events) - these are normal deployments
+    const cdResponse = await fetch(
+      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=50&event=push`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -197,19 +197,37 @@ export async function fetchWorkflowRuns(
       }
     )
 
-    if (!response.ok) {
-      console.warn(`[GITHUB] Failed to fetch workflow runs for ${repoFullName}:`, response.status)
+    // Fetch CI runs (pull_request events) - these are PR validations
+    const ciResponse = await fetch(
+      `https://api.github.com/repos/${repoFullName}/actions/runs?per_page=50&event=pull_request`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    )
+
+    if (!cdResponse.ok || !ciResponse.ok) {
+      console.warn(`[GITHUB] Failed to fetch workflow runs for ${repoFullName}`)
       return []
     }
 
-    const data = await response.json()
-    const allRuns = data.workflow_runs || []
-    console.log('[GITHUB] All runs returned from API:', allRuns.map((r: any) => ({ 
+    const cdData = await cdResponse.json()
+    const ciData = await ciResponse.json()
+    
+    const cdRuns = cdData.workflow_runs || []
+    const ciRuns = ciData.workflow_runs || []
+    
+    // Combine all runs
+    const allRuns = [...cdRuns, ...ciRuns]
+    
+    console.log('[GITHUB] Fetched CD runs:', cdRuns.length)
+    console.log('[GITHUB] Fetched CI runs:', ciRuns.length)
+    console.log('[GITHUB] All runs by event type:', allRuns.map((r: any) => ({ 
       name: r.name, 
-      status: r.status, 
-      conclusion: r.conclusion,
       event: r.event,
-      head_branch: r.head_branch 
+      status: r.status
     })))
     
     // Filter for our three workflows by name
@@ -218,18 +236,18 @@ export async function fetchWorkflowRuns(
       run.name?.includes('CD') || 
       run.name?.includes('Rollback') ||
       run.name?.includes('rollback') ||
-      run.name?.includes('Validate')
+      run.name?.includes('Validate') ||
+      run.name?.includes('Promote')
     )
     
-    // Sort by created_at descending and take the most recent 20
+    // Sort by created_at descending and take the most recent 30
     filteredRuns.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    const recentRuns = filteredRuns.slice(0, 20)
+    const recentRuns = filteredRuns.slice(0, 30)
     
-    console.log('[GITHUB] Fetched', allRuns.length, 'total runs, filtered to', recentRuns.length, 'workflow runs for', repoFullName)
-    console.log('[GITHUB] Run breakdown - CI:', recentRuns.filter((r: any) => r.name?.includes('CI') || r.name?.includes('Validate')).length, 'CD:', recentRuns.filter((r: any) => r.name?.includes('CD') || r.name?.includes('Promote')).length)
-    if (recentRuns.length > 0) {
-      console.log('[GITHUB] Recent run names:', recentRuns.map((r: any) => r.name))
-    }
+    console.log('[GITHUB] Total runs after combining:', recentRuns.length)
+    console.log('[GITHUB] CI runs in results:', recentRuns.filter((r: any) => r.event === 'pull_request').length)
+    console.log('[GITHUB] CD runs in results:', recentRuns.filter((r: any) => r.event === 'push').length)
+    
     return recentRuns
   } catch (err) {
     console.error(`[GITHUB] Error fetching workflow runs for ${repoFullName}:`, err)
