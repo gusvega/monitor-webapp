@@ -534,12 +534,12 @@ export default function Dashboard() {
                                 )
                               })()}
                             </div>
-
                             {/* Pipeline Runs - Collapsible boxes like CD workflow */}
                             {(() => {
                               const ciRuns = (repo.workflowRuns || [])
                                 .filter((run) => run.name?.includes('CI'))
                                 .slice(0, 5)
+                              console.log('[CI BOXES DEBUG]', { repo: repo.name, totalRuns: repo.workflowRuns?.length, ciRunsFiltered: ciRuns.length, runNames: repo.workflowRuns?.map(r => r.name).slice(0, 3) })
 
                               return ciRuns.length > 0 ? (
                                 <div className="mt-3 pt-3 border-t border-blue-200 space-y-2">
