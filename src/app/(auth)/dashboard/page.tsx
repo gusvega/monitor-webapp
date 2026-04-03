@@ -490,16 +490,16 @@ export default function Dashboard() {
                                               )}
                                             </div>
                                             <span className={`text-xs font-medium px-2 py-1 rounded ${
-                                              ciJobs.every(j => j.conclusion === 'success') 
-                                                ? 'bg-green-100 text-green-700' 
-                                                : ciJobs.some(j => j.conclusion === 'failure')
+                                              ciJobs.some(j => j.conclusion === 'failure')
                                                 ? 'bg-red-100 text-red-700'
-                                                : 'bg-yellow-100 text-yellow-700'
+                                                : ciJobs.some(j => !j.conclusion)
+                                                ? 'bg-yellow-100 text-yellow-700'
+                                                : 'bg-green-100 text-green-700'
                                             }`}>
                                               <span className="inline-block mr-1">
-                                                {ciJobs.every(j => j.conclusion === 'success') ? '✅' : ciJobs.some(j => j.conclusion === 'failure') ? '❌' : '⏳'}
+                                                {ciJobs.some(j => j.conclusion === 'failure') ? '❌' : ciJobs.some(j => !j.conclusion) ? '⏳' : '✅'}
                                               </span>
-                                              {ciJobs.every(j => j.conclusion === 'success') ? 'Success' : ciJobs.some(j => j.conclusion === 'failure') ? 'Failed' : 'Running'}
+                                              {ciJobs.some(j => j.conclusion === 'failure') ? 'Failed' : ciJobs.some(j => !j.conclusion) ? 'Running' : 'Success'}
                                             </span>
                                           </button>
                                           
@@ -561,11 +561,11 @@ export default function Dashboard() {
                                           if (envJobs.length === 0) return null
 
                                           const isExpanded = expandedCdRuns[repo.id] === run.id
-                                          const overallStatus = envJobs.every(j => j.conclusion === 'success')
-                                            ? 'success'
-                                            : envJobs.some(j => j.conclusion === 'failure')
+                                          const overallStatus = envJobs.some(j => j.conclusion === 'failure')
                                             ? 'failure'
-                                            : 'running'
+                                            : envJobs.some(j => !j.conclusion)
+                                            ? 'running'
+                                            : 'success'
 
                                           return (
                                             <div key={run.id} className="bg-white border border-green-200 rounded p-3">
