@@ -836,14 +836,14 @@ export default function Dashboard() {
                                     <X className="w-5 h-5 text-red-400" />
                                   )}
                                 </div>
-                                <p className="mb-2 text-sm font-medium text-neutral-700 capitalize">{env}</p>
+                                <p className="mb-2 text-xs font-medium text-neutral-700 capitalize sm:text-sm">{env}</p>
                                 {data ? (
                                   <div>
-                                    <p className="break-words text-xs font-semibold text-neutral-900">{data.tag}</p>
-                                    <p className="mt-1 text-xs text-neutral-500">{data.date}</p>
+                                    <p className="break-all text-[11px] font-semibold leading-5 text-neutral-900 sm:text-xs">{data.tag}</p>
+                                    <p className="mt-1 text-[11px] text-neutral-500 sm:text-xs">{data.date}</p>
                                   </div>
                                 ) : (
-                                  <p className="text-xs text-neutral-500">Not deployed</p>
+                                  <p className="text-[11px] text-neutral-500 sm:text-xs">Not deployed</p>
                                 )}
                               </div>
                             )
@@ -867,7 +867,7 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
                           {/* CI Pipeline - 1 column */}
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 lg:col-span-1">
-                            <p className="text-sm font-bold text-blue-900 mb-3">CI Workflow</p>
+                            <p className="mb-3 text-xs font-bold text-blue-900 sm:text-sm">CI Workflow</p>
                             <div className="grid grid-cols-1 gap-3">
                               {(() => {
                                 const ciJobs: (WorkflowJob & { runName: string; runId: number })[] = []
@@ -942,7 +942,7 @@ export default function Dashboard() {
                                             <div className="min-w-0 flex items-start gap-2">
                                               <div className="pt-0.5 text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
                                               <div className="min-w-0">
-                                                <span className="text-xs font-semibold text-blue-700">{formatDate(run.created_at)}</span>
+                                                <span className="text-[11px] font-semibold text-blue-700 sm:text-xs">{formatDate(run.created_at)}</span>
                                                 {!isExpanded && (
                                                   <div className="mt-2 flex flex-wrap items-center gap-1">
                                                     {runJobs.map((job) => (
@@ -963,7 +963,7 @@ export default function Dashboard() {
                                               </div>
                                             </div>
                                             <span
-                                              className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(runStatus)}`}
+                                              className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-[11px] font-medium sm:text-xs ${getRunStatusClasses(runStatus)}`}
                                             >
                                               <span>
                                                 {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
@@ -989,7 +989,7 @@ export default function Dashboard() {
                                                   )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                  <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
+                                                  <p className="break-all text-[11px] font-semibold leading-5 text-neutral-700 sm:text-xs">{job.name}</p>
                                                 </div>
                                               </div>
                                             ))}
@@ -1005,7 +1005,7 @@ export default function Dashboard() {
 
                           {/* CD Pipeline - 3 columns, unified runs */}
                           <div className="bg-green-50 border border-green-200 rounded-lg p-4 lg:col-span-3">
-                            <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
+                            <p className="mb-3 text-xs font-bold text-green-900 sm:text-sm">CD Workflow</p>
                             {(() => {
                               const cdRuns = selectedRepo.workflowRuns
                                 ?.filter(isCdWorkflowRun)
@@ -1053,7 +1053,7 @@ export default function Dashboard() {
                                             <div className="min-w-0 flex items-start gap-2">
                                               <div className="pt-0.5 text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
                                               <div className="min-w-0">
-                                                <span className="text-xs font-semibold text-green-700">
+                                                <span className="text-[11px] font-semibold text-green-700 sm:text-xs">
                                                   {formatDate(run.created_at)}
                                                 </span>
                                                 {!isExpanded && (
@@ -1089,7 +1089,7 @@ export default function Dashboard() {
                                               </div>
                                             </div>
                                             <span
-                                              className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(overallStatus)}`}
+                                              className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-[11px] font-medium sm:text-xs ${getRunStatusClasses(overallStatus)}`}
                                             >
                                               <span>
                                                 {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
@@ -1118,8 +1118,8 @@ export default function Dashboard() {
                                                     )}
                                                   </div>
                                                   <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-semibold text-neutral-700">{versionJob.name}</p>
-                                                    <p className="text-xs text-neutral-500">{formatDate(versionJob.completed_at)}</p>
+                                                    <p className="break-all text-[11px] font-semibold leading-5 text-neutral-700 sm:text-xs">{versionJob.name}</p>
+                                                    <p className="text-[11px] text-neutral-500 sm:text-xs">{formatDate(versionJob.completed_at)}</p>
                                                   </div>
                                                 </div>
                                               </div>
@@ -1137,7 +1137,7 @@ export default function Dashboard() {
 
                                                 return (
                                                   <div key={env} className="bg-neutral-50 border border-neutral-200 rounded p-3">
-                                                    <p className="text-xs font-semibold text-neutral-700 mb-2 capitalize">{env}</p>
+                                                    <p className="mb-2 text-[11px] font-semibold capitalize text-neutral-700 sm:text-xs">{env}</p>
                                                     {envJobs.length > 0 ? (
                                                       <div className="space-y-1">
                                                         {envJobs.map((job) => (
@@ -1154,7 +1154,7 @@ export default function Dashboard() {
                                                               )}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                              <p className="text-xs text-neutral-700 truncate">{job.name}</p>
+                                                              <p className="break-all text-[11px] leading-5 text-neutral-700 sm:text-xs">{job.name}</p>
                                                             </div>
                                                           </div>
                                                         ))}

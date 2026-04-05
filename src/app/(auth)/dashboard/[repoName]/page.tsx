@@ -681,10 +681,10 @@ export default function RepoDashboardPage() {
 
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 lg:col-span-1">
-                      <p className="mb-3 text-sm font-bold text-blue-900">CI Workflow</p>
+                      <p className="mb-3 text-xs font-bold text-blue-900 sm:text-sm">CI Workflow</p>
                       <div className="mb-4 rounded-lg border border-blue-200 bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Latest CI Status</p>
-                        <p className="mt-1 text-sm font-semibold text-neutral-900">
+                        <p className="mt-1 text-[13px] font-semibold text-neutral-900 sm:text-sm">
                           {latestCi
                             ? latestCiStatus === 'success'
                               ? 'Validation is passing'
@@ -693,7 +693,7 @@ export default function RepoDashboardPage() {
                                 : 'Validation is running'
                             : 'No CI runs yet'}
                         </p>
-                        <p className="mt-1 text-xs text-neutral-600">
+                        <p className="mt-1 text-[11px] text-neutral-600 sm:text-xs">
                           {latestCi
                             ? `${formatDate(latestCi.created_at)} · ${ciSuccessCount}/${ciRuns.length || 1} recent runs passed`
                             : 'Recent workflow activity will appear here'}
@@ -759,23 +759,23 @@ export default function RepoDashboardPage() {
                                               if (failedJob) void loadJobSummary(failedJob, 'ci')
                                             }}
                                           >
-                                            <p className="truncate text-sm font-semibold text-neutral-900">
+                                            <p className="break-words text-[13px] font-semibold leading-5 text-neutral-900 sm:text-sm">
                                               {`Validation failed${failedJobName ? ` in ${failedJobName}` : ''}`}
                                             </p>
                                           </FailureTooltip>
                                         ) : (
-                                          <p className="truncate text-sm font-semibold text-neutral-900">
+                                          <p className="break-words text-[13px] font-semibold leading-5 text-neutral-900 sm:text-sm">
                                             {runStatus === 'success'
                                               ? `Commit ${run.head_branch || 'default'} passed validation`
                                               : 'Validation is currently running'}
                                           </p>
                                         )}
-                                        <p className="mt-1 text-xs text-neutral-500">
+                                        <p className="mt-1 text-[11px] text-neutral-500 sm:text-xs">
                                           {formatDate(run.created_at)} · {runJobs.length} jobs checked
                                         </p>
                                       </div>
                                     </div>
-                                    <span className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(runStatus)}`}>
+                                    <span className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-[11px] font-medium sm:text-xs ${getRunStatusClasses(runStatus)}`}>
                                       {runStatus === 'success' ? 'Success' : runStatus === 'failure' ? 'Failed' : 'Running'}
                                     </span>
                                   </div>
@@ -802,10 +802,10 @@ export default function RepoDashboardPage() {
                                                 isLoading={Boolean(jobSummaryLoading[job.id])}
                                                 onOpen={() => void loadJobSummary(job, 'ci')}
                                               >
-                                                <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
+                                                <p className="break-all text-[11px] font-semibold leading-5 text-neutral-700 sm:text-xs">{job.name}</p>
                                               </FailureTooltip>
                                             ) : (
-                                              <p className="text-xs font-semibold text-neutral-700">{job.name}</p>
+                                              <p className="break-all text-[11px] font-semibold leading-5 text-neutral-700 sm:text-xs">{job.name}</p>
                                             )}
                                             {job.html_url && (
                                               <a
@@ -834,10 +834,10 @@ export default function RepoDashboardPage() {
                     </div>
 
                     <div className="rounded-lg border border-green-200 bg-green-50 p-4 lg:col-span-3">
-                      <p className="mb-3 text-sm font-bold text-green-900">Release Activity</p>
+                      <p className="mb-3 text-xs font-bold text-green-900 sm:text-sm">Release Activity</p>
                       <div className="mb-4 rounded-lg border border-green-200 bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Latest Deployment Status</p>
-                        <p className="mt-1 text-sm font-semibold text-neutral-900">
+                        <p className="mt-1 text-[13px] font-semibold text-neutral-900 sm:text-sm">
                           {latestCd
                             ? latestCdStatus === 'success'
                               ? 'Latest release completed successfully'
@@ -846,7 +846,7 @@ export default function RepoDashboardPage() {
                                 : 'A release is currently running'
                             : 'No release activity yet'}
                         </p>
-                        <p className="mt-1 text-xs text-neutral-600">
+                        <p className="mt-1 text-[11px] text-neutral-600 sm:text-xs">
                           {latestCd && latestCdVersion
                             ? `${latestCdVersion.primary} · ${formatDate(latestCd.created_at)}`
                             : 'Recent release activity will appear here'}
@@ -919,19 +919,19 @@ export default function RepoDashboardPage() {
                                               if (failedJob) void loadJobSummary(failedJob, 'cd')
                                             }}
                                           >
-                                            <p className="truncate text-sm font-semibold text-neutral-900">
+                                            <p className="break-words text-[13px] font-semibold leading-5 text-neutral-900 sm:text-sm">
                                               {`${versionLabel.primary} failed${failedDeployJob ? ` at ${failedDeployJob}` : ''}`}
                                             </p>
                                           </FailureTooltip>
                                         ) : (
-                                          <p className="truncate text-sm font-semibold text-neutral-900">
+                                          <p className="break-words text-[13px] font-semibold leading-5 text-neutral-900 sm:text-sm">
                                             {overallStatus === 'success'
                                               ? `${versionLabel.primary} deployed${deployEnvironments.length ? ` to ${deployEnvironments.join(', ')}` : ''}`
                                               : `${versionLabel.primary} is deploying`}
                                           </p>
                                         )}
                                         <div className="mt-1 flex flex-wrap items-center gap-2">
-                                          <span className="text-xs text-neutral-500">{formatDate(run.created_at)}</span>
+                                          <span className="text-[11px] text-neutral-500 sm:text-xs">{formatDate(run.created_at)}</span>
                                           {deployEnvironments.map((env) => (
                                             <span
                                               key={`${run.id}-${env}`}
@@ -943,7 +943,7 @@ export default function RepoDashboardPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    <span className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(overallStatus)}`}>
+                                    <span className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-[11px] font-medium sm:text-xs ${getRunStatusClasses(overallStatus)}`}>
                                       {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
                                     </span>
                                   </div>
@@ -954,7 +954,7 @@ export default function RepoDashboardPage() {
                                     {versionJob && (
                                       <div className="mb-4">
                                         <p className="mb-2 text-xs font-semibold text-neutral-700">Version</p>
-                                      <div className="flex items-center gap-2 rounded bg-green-50 px-2 py-1.5 transition-colors hover:bg-green-100">
+                                        <div className="flex items-center gap-2 rounded bg-green-50 px-2 py-1.5 transition-colors hover:bg-green-100">
                                           {versionJob.conclusion === 'success' ? (
                                             <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
                                           ) : versionJob.conclusion === 'failure' ? (
@@ -972,10 +972,10 @@ export default function RepoDashboardPage() {
                                                   isLoading={Boolean(jobSummaryLoading[versionJob.id])}
                                                   onOpen={() => void loadJobSummary(versionJob, 'cd')}
                                                 >
-                                                  <p className="text-xs font-semibold text-neutral-700">{versionJob.name}</p>
+                                                  <p className="break-all text-[11px] font-semibold leading-5 text-neutral-700 sm:text-xs">{versionJob.name}</p>
                                                 </FailureTooltip>
                                               ) : (
-                                                <p className="text-xs font-semibold text-neutral-700">{versionJob.name}</p>
+                                                <p className="break-all text-[11px] font-semibold leading-5 text-neutral-700 sm:text-xs">{versionJob.name}</p>
                                               )}
                                               {versionJob.html_url && (
                                                 <a
@@ -1006,7 +1006,7 @@ export default function RepoDashboardPage() {
 
                                         return (
                                           <div key={env} className="rounded border border-neutral-200 bg-neutral-50 p-3">
-                                            <p className="mb-2 text-xs font-semibold capitalize text-neutral-700">{env}</p>
+                                            <p className="mb-2 text-[11px] font-semibold capitalize text-neutral-700 sm:text-xs">{env}</p>
                                             {envJobs.length > 0 ? (
                                               <div className="space-y-1">
                                                 {envJobs.map((job) => (
@@ -1028,10 +1028,10 @@ export default function RepoDashboardPage() {
                                                             isLoading={Boolean(jobSummaryLoading[job.id])}
                                                             onOpen={() => void loadJobSummary(job, 'cd')}
                                                           >
-                                                            <p className="truncate text-xs text-neutral-700">{job.name}</p>
+                                                            <p className="break-all text-[11px] leading-5 text-neutral-700 sm:text-xs">{job.name}</p>
                                                           </FailureTooltip>
                                                         ) : (
-                                                          <p className="truncate text-xs text-neutral-700">{job.name}</p>
+                                                          <p className="break-all text-[11px] leading-5 text-neutral-700 sm:text-xs">{job.name}</p>
                                                         )}
                                                         {job.html_url && (
                                                           <a

@@ -118,8 +118,8 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur-sm md:left-64 md:h-16">
-        <div className="flex min-h-16 items-center justify-between gap-3 px-3 py-3 sm:px-4 md:h-full md:px-8 md:py-0 md:gap-6">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex min-h-16 items-center justify-between gap-2 px-3 py-2.5 sm:px-4 md:h-full md:px-8 md:py-0 md:gap-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onMenuToggle}
@@ -147,18 +147,18 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
               <>
                 <button
                   onClick={() => setIsRepoOpen((prev) => !prev)}
-                  className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-left transition-all hover:border-neutral-300 hover:bg-neutral-50"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left transition-all hover:border-neutral-300 hover:bg-neutral-50 sm:px-4 sm:py-2.5"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="rounded-lg bg-neutral-100 p-2">
+                      <div className="rounded-lg bg-neutral-100 p-1.5 sm:p-2">
                         <GitBranch className="w-4 h-4 text-neutral-700" />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-neutral-900">
+                        <p className="truncate text-[13px] font-semibold text-neutral-900 sm:text-sm">
                           {selectedRepo ? selectedRepo.name : 'Overview'}
                         </p>
-                        <p className="truncate text-xs text-neutral-500">
+                        <p className="hidden truncate text-[11px] text-neutral-500 sm:block">
                           {selectedRepo ? getRepoSubtitle(selectedRepo) : `${repositories.length} repositories monitored`}
                         </p>
                       </div>
@@ -184,11 +184,11 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold">{repo.name}</p>
-                              <p className="truncate text-xs opacity-75">{getRepoSubtitle(repo)}</p>
+                              <p className="text-[13px] font-semibold sm:text-sm">{repo.name}</p>
+                              <p className="break-all text-[11px] opacity-75 sm:text-xs">{getRepoSubtitle(repo)}</p>
                             </div>
                             {repo.language && (
-                              <span className="rounded-full border border-current/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                              <span className="hidden rounded-full border border-current/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-80 sm:inline-flex">
                                 {repo.language}
                               </span>
                             )}
@@ -236,7 +236,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-4">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-4">
             {session ? (
               <>
                 <div className="hidden sm:flex flex-col items-end">
@@ -252,7 +252,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                    className="flex items-center gap-2 rounded-xl border border-transparent px-2 py-2 sm:gap-3 sm:px-3 transition-colors hover:bg-neutral-100"
+                    className="flex items-center gap-1.5 rounded-xl border border-neutral-200/80 bg-white px-1.5 py-1.5 sm:gap-3 sm:border-transparent sm:bg-transparent sm:px-3 sm:py-2 transition-colors hover:bg-neutral-100"
                   >
                     <Avatar
                       size="sm"
@@ -260,13 +260,13 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                       alt={session.user?.name || 'User'}
                       initials={session.user?.name?.slice(0, 1) || session.user?.email?.slice(0, 1)}
                     />
-                    <div className="hidden sm:block text-left">
+                    <div className="hidden md:block text-left">
                       <p className="text-sm font-semibold text-neutral-900">
                         {session.user?.name || session.user?.email}
                       </p>
                     </div>
                     <ChevronDown
-                      className={`hidden h-4 w-4 text-neutral-500 transition-transform sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                      className={`hidden h-4 w-4 text-neutral-500 transition-transform md:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
 
