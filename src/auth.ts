@@ -7,6 +7,7 @@ const AUTHORIZED_USERS = (process.env.AUTHORIZED_GITHUB_USERS || 'gusvega')
   .filter(Boolean)
 
 export const { handlers, auth } = NextAuth({
+  trustHost: true,
   providers: [
     GitHub({
       clientId: process.env.GITHUB_ID,
