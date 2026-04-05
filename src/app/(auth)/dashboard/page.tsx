@@ -864,9 +864,9 @@ export default function Dashboard() {
                           <p className="text-sm font-semibold text-neutral-900">Recent Deployments</p>
                         </div>
                         
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
                           {/* CI Pipeline - 1 column */}
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 lg:col-span-1">
                             <p className="text-sm font-bold text-blue-900 mb-3">CI Workflow</p>
                             <div className="grid grid-cols-1 gap-3">
                               {(() => {
@@ -936,37 +936,41 @@ export default function Dashboard() {
                                               [selectedRepo.id]: isExpanded ? null : run.id,
                                             }))
                                           }
-                                          className="w-full flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors"
+                                          className="w-full rounded p-2 text-left transition-colors hover:bg-blue-50"
                                         >
-                                          <div className="flex items-center gap-2">
-                                            <div className="text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
-                                            <span className="text-xs font-semibold text-blue-700">{formatDate(run.created_at)}</span>
-                                            {!isExpanded && (
-                                              <div className="flex items-center gap-1">
-                                                {runJobs.map((job) => (
-                                                  <div key={job.id}>
-                                                    {job.conclusion === 'success' ? (
-                                                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                                    ) : job.conclusion === 'failure' ? (
-                                                      <X className="w-3.5 h-3.5 text-red-500" />
-                                                    ) : job.conclusion === 'skipped' ? (
-                                                      <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
-                                                    ) : (
-                                                      <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
-                                                    )}
+                                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0 flex items-start gap-2">
+                                              <div className="pt-0.5 text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
+                                              <div className="min-w-0">
+                                                <span className="text-xs font-semibold text-blue-700">{formatDate(run.created_at)}</span>
+                                                {!isExpanded && (
+                                                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                                                    {runJobs.map((job) => (
+                                                      <div key={job.id}>
+                                                        {job.conclusion === 'success' ? (
+                                                          <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                        ) : job.conclusion === 'failure' ? (
+                                                          <X className="w-3.5 h-3.5 text-red-500" />
+                                                        ) : job.conclusion === 'skipped' ? (
+                                                          <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
+                                                        ) : (
+                                                          <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                        )}
+                                                      </div>
+                                                    ))}
                                                   </div>
-                                                ))}
+                                                )}
                                               </div>
-                                            )}
-                                          </div>
-                                          <span
-                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${getRunStatusClasses(runStatus)}`}
-                                          >
-                                            <span>
-                                              {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
+                                            </div>
+                                            <span
+                                              className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(runStatus)}`}
+                                            >
+                                              <span>
+                                                {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
+                                              </span>
+                                              {runStatus === 'success' ? 'Success' : runStatus === 'failure' ? 'Failed' : 'Running'}
                                             </span>
-                                            {runStatus === 'success' ? 'Success' : runStatus === 'failure' ? 'Failed' : 'Running'}
-                                          </span>
+                                          </div>
                                         </button>
 
                                         {isExpanded && (
@@ -1000,7 +1004,7 @@ export default function Dashboard() {
                           </div>
 
                           {/* CD Pipeline - 3 columns, unified runs */}
-                          <div className="col-span-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4 lg:col-span-3">
                             <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
                             {(() => {
                               const cdRuns = selectedRepo.workflowRuns
@@ -1043,52 +1047,56 @@ export default function Dashboard() {
                                               [selectedRepo.id]: isExpanded ? null : run.id,
                                             }))
                                           }
-                                          className="w-full flex items-center justify-between hover:bg-green-50 p-2 rounded transition-colors"
+                                          className="w-full rounded p-2 text-left transition-colors hover:bg-green-50"
                                         >
-                                          <div className="flex items-center gap-2">
-                                            <div className="text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
-                                            <span className="text-xs font-semibold text-green-700">
-                                              {formatDate(run.created_at)}
-                                            </span>
-                                            {!isExpanded && (
-                                              <div className="flex items-center gap-1">
-                                                {versionJob && (
-                                                  <div className="flex items-center">
-                                                    {versionJob.conclusion === 'success' ? (
-                                                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                                    ) : versionJob.conclusion === 'failure' ? (
-                                                      <X className="w-3.5 h-3.5 text-red-500" />
-                                                    ) : versionJob.conclusion === 'skipped' ? (
-                                                      <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
-                                                    ) : (
-                                                      <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0 flex items-start gap-2">
+                                              <div className="pt-0.5 text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
+                                              <div className="min-w-0">
+                                                <span className="text-xs font-semibold text-green-700">
+                                                  {formatDate(run.created_at)}
+                                                </span>
+                                                {!isExpanded && (
+                                                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                                                    {versionJob && (
+                                                      <div className="flex items-center">
+                                                        {versionJob.conclusion === 'success' ? (
+                                                          <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                        ) : versionJob.conclusion === 'failure' ? (
+                                                          <X className="w-3.5 h-3.5 text-red-500" />
+                                                        ) : versionJob.conclusion === 'skipped' ? (
+                                                          <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
+                                                        ) : (
+                                                          <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                        )}
+                                                      </div>
                                                     )}
+                                                    {allDeployJobs.map((job) => (
+                                                      <div key={job.id} className="flex items-center">
+                                                        {job.conclusion === 'success' ? (
+                                                          <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                                        ) : job.conclusion === 'failure' ? (
+                                                          <X className="w-3.5 h-3.5 text-red-500" />
+                                                        ) : job.conclusion === 'skipped' ? (
+                                                          <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
+                                                        ) : (
+                                                          <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
+                                                        )}
+                                                      </div>
+                                                    ))}
                                                   </div>
                                                 )}
-                                                {allDeployJobs.map((job) => (
-                                                  <div key={job.id} className="flex items-center">
-                                                    {job.conclusion === 'success' ? (
-                                                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                                    ) : job.conclusion === 'failure' ? (
-                                                      <X className="w-3.5 h-3.5 text-red-500" />
-                                                    ) : job.conclusion === 'skipped' ? (
-                                                      <div className="w-3.5 h-3.5 rounded-full bg-gray-400" />
-                                                    ) : (
-                                                      <div className="w-3.5 h-3.5 rounded-full bg-yellow-400" />
-                                                    )}
-                                                  </div>
-                                                ))}
                                               </div>
-                                            )}
-                                          </div>
-                                          <span
-                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${getRunStatusClasses(overallStatus)}`}
-                                          >
-                                            <span>
-                                              {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
+                                            </div>
+                                            <span
+                                              className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(overallStatus)}`}
+                                            >
+                                              <span>
+                                                {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
+                                              </span>
+                                              {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
                                             </span>
-                                            {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
-                                          </span>
+                                          </div>
                                         </button>
 
                                         {isExpanded && (
@@ -1118,7 +1126,7 @@ export default function Dashboard() {
                                             )}
                                             
                                             {/* Deployments by Environment */}
-                                            <div className="grid grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                               {['dev', 'qat', 'prod'].map((env) => {
                                                 const envJobs = allDeployJobs.filter((job) => {
                                                   if (env === 'dev') return job.name.includes('dev') || job.name === 'Deploy to Dev'

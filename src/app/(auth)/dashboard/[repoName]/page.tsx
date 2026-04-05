@@ -679,8 +679,8 @@ export default function RepoDashboardPage() {
                     <p className="text-sm font-semibold text-neutral-900">Recent Deployments</p>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 lg:col-span-1">
                       <p className="mb-3 text-sm font-bold text-blue-900">CI Workflow</p>
                       <div className="mb-4 rounded-lg border border-blue-200 bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Latest CI Status</p>
@@ -724,7 +724,7 @@ export default function RepoDashboardPage() {
                                   }
                                   className="w-full rounded p-2 text-left transition-colors hover:bg-blue-50"
                                 >
-                                  <div className="flex items-center justify-between gap-2">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="min-w-0 flex items-start gap-2">
                                       <div className="pt-0.5 text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
                                       <div className="min-w-0">
@@ -775,7 +775,7 @@ export default function RepoDashboardPage() {
                                         </p>
                                       </div>
                                     </div>
-                                    <span className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(runStatus)}`}>
+                                    <span className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(runStatus)}`}>
                                       {runStatus === 'success' ? 'Success' : runStatus === 'failure' ? 'Failed' : 'Running'}
                                     </span>
                                   </div>
@@ -833,7 +833,7 @@ export default function RepoDashboardPage() {
                       )}
                     </div>
 
-                    <div className="col-span-3 rounded-lg border border-green-200 bg-green-50 p-4">
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-4 lg:col-span-3">
                       <p className="mb-3 text-sm font-bold text-green-900">Release Activity</p>
                       <div className="mb-4 rounded-lg border border-green-200 bg-white p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Latest Deployment Status</p>
@@ -884,7 +884,7 @@ export default function RepoDashboardPage() {
                                   }
                                   className="w-full rounded p-2 text-left transition-colors hover:bg-green-50"
                                 >
-                                  <div className="flex items-center justify-between gap-2">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="min-w-0 flex items-start gap-2">
                                       <div className="pt-0.5 text-lg leading-none">{isExpanded ? '▼' : '▶'}</div>
                                       <div className="min-w-0">
@@ -943,7 +943,7 @@ export default function RepoDashboardPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    <span className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(overallStatus)}`}>
+                                    <span className={`inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(overallStatus)}`}>
                                       {overallStatus === 'success' ? 'Success' : overallStatus === 'failure' ? 'Failed' : 'Running'}
                                     </span>
                                   </div>
@@ -954,7 +954,7 @@ export default function RepoDashboardPage() {
                                     {versionJob && (
                                       <div className="mb-4">
                                         <p className="mb-2 text-xs font-semibold text-neutral-700">Version</p>
-                                        <div className="flex items-center gap-2 rounded bg-green-50 px-2 py-1.5 transition-colors hover:bg-green-100">
+                                      <div className="flex items-center gap-2 rounded bg-green-50 px-2 py-1.5 transition-colors hover:bg-green-100">
                                           {versionJob.conclusion === 'success' ? (
                                             <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
                                           ) : versionJob.conclusion === 'failure' ? (
@@ -995,7 +995,7 @@ export default function RepoDashboardPage() {
                                       </div>
                                     )}
 
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                       {['dev', 'qat', 'prod'].map((env) => {
                                         const envJobs = allDeployJobs.filter((job) => {
                                           if (env === 'dev') return job.name.includes('dev') || job.name === 'Deploy to Dev'

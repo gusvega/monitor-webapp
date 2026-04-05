@@ -117,8 +117,8 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 h-16 border-b border-neutral-200 bg-white/90 backdrop-blur-sm z-20 md:left-64">
-        <div className="h-full px-4 md:px-8 flex items-center justify-between gap-4 md:gap-6">
+      <header className="fixed top-0 left-0 right-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur-sm md:left-64 md:h-16">
+        <div className="flex min-h-16 items-center justify-between gap-3 px-3 py-3 sm:px-4 md:h-full md:px-8 md:py-0 md:gap-6">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               type="button"
@@ -236,7 +236,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-4">
             {session ? (
               <>
                 <div className="hidden sm:flex flex-col items-end">
@@ -252,7 +252,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                    className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 transition-colors hover:bg-neutral-100"
+                    className="flex items-center gap-2 rounded-xl border border-transparent px-2 py-2 sm:gap-3 sm:px-3 transition-colors hover:bg-neutral-100"
                   >
                     <Avatar
                       size="sm"
@@ -266,7 +266,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                       </p>
                     </div>
                     <ChevronDown
-                      className={`w-4 h-4 text-neutral-500 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                      className={`hidden h-4 w-4 text-neutral-500 transition-transform sm:block ${isUserMenuOpen ? 'rotate-180' : ''}`}
                     />
                   </button>
 
@@ -292,7 +292,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                   )}
                 </div>
 
-                <button className="rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900">
+                <button className="hidden rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 md:inline-flex">
                   <Settings className="w-4 h-4" />
                 </button>
               </>
