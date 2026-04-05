@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
@@ -16,6 +16,7 @@ function ProtectedLayoutContent({
   const { data: session, status } = useSession()
   const router = useRouter()
   const hasAccessToken = Boolean((session as any)?.accessToken)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     // If not authenticated, redirect to login
@@ -33,6 +34,25 @@ function ProtectedLayoutContent({
     }
   }, [hasAccessToken, router, status])
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const handleOpenSidebar = useCallback(() => {
+    setIsSidebarOpen(true)
+  }, [])
+
+  const handleCloseSidebar = useCallback(() => {
+    setIsSidebarOpen(false)
+  }, [])
+
   // Show loading state while checking auth
   if (status === 'loading') {
     return <LoadingScreen title="Checking your Monitor session..." description="Preparing your dashboard access." />
@@ -45,9 +65,9 @@ function ProtectedLayoutContent({
 
   return (
     <>
-      <Topbar />
-      <Sidebar />
-      <main className="ml-64 min-h-screen pt-16">
+      <Topbar onMenuToggle={handleOpenSidebar} />
+      <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+      <main className="min-h-screen pt-16 md:ml-64">
         {children}
       </main>
     </>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, GitBranch, Settings, Plus, LogOut } from 'lucide-react'
+import { ChevronDown, GitBranch, Menu, Settings, Plus, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import {
   Avatar,
@@ -25,7 +25,11 @@ interface Repository {
   language?: string | null
 }
 
-export default function Topbar() {
+interface TopbarProps {
+  onMenuToggle?: () => void
+}
+
+export default function Topbar({ onMenuToggle }: TopbarProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const [repositories, setRepositories] = useState<Repository[]>([])
@@ -113,9 +117,19 @@ export default function Topbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-64 right-0 h-16 border-b border-neutral-200 bg-white/90 backdrop-blur-sm z-20">
-        <div className="h-full px-8 flex items-center justify-between gap-6">
-          <div className="relative w-72 max-w-full" onClick={(e) => e.stopPropagation()}>
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-neutral-200 bg-white/90 backdrop-blur-sm z-20 md:left-64">
+        <div className="h-full px-4 md:px-8 flex items-center justify-between gap-4 md:gap-6">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={onMenuToggle}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 transition-colors hover:bg-neutral-50 md:hidden"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <div className="relative w-full max-w-full md:w-72" onClick={(e) => e.stopPropagation()}>
             {isLoading ? (
               <Card className="shadow-none">
                 <CardContent className="py-2.5">
@@ -156,7 +170,7 @@ export default function Topbar() {
                 </button>
 
                 {isRepoOpen && (
-                  <Card className="absolute top-full left-0 mt-2 w-80 max-w-[min(24rem,calc(100vw-22rem))] shadow-lg">
+                  <Card className="absolute top-full left-0 mt-2 w-full max-w-[min(24rem,calc(100vw-2rem))] shadow-lg md:w-80 md:max-w-[min(24rem,calc(100vw-22rem))]">
                     <CardContent className="p-2 space-y-1">
                       {repositories.map((repo) => (
                         <button
@@ -219,9 +233,10 @@ export default function Topbar() {
                 Select Repositories
               </Button>
             )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
             {session ? (
               <>
                 <div className="hidden sm:flex flex-col items-end">
