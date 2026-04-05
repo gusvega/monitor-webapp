@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { SessionProvider } from 'next-auth/react'
+import '@gusvega/ui/style.css'
 // @ts-expect-error CSS import
 import './globals.css'
 

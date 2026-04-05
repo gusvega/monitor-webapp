@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
-import { SessionProvider } from 'next-auth/react'
+import { clearMonitorLocalState } from '@/lib/client-auth'
+import LoadingScreen from '@/components/LoadingScreen'
 
 function ProtectedLayoutContent({
   children,
@@ -14,6 +15,7 @@ function ProtectedLayoutContent({
 }) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const hasAccessToken = Boolean((session as any)?.accessToken)
 
   useEffect(() => {
     // If not authenticated, redirect to login
@@ -23,20 +25,21 @@ function ProtectedLayoutContent({
     }
   }, [status, router])
 
+  useEffect(() => {
+    if (status === 'authenticated' && !hasAccessToken) {
+      console.warn('[AUTH LAYOUT] Session missing access token, clearing Monitor state')
+      clearMonitorLocalState()
+      signOut({ redirect: false }).finally(() => router.push('/login'))
+    }
+  }, [hasAccessToken, router, status])
+
   // Show loading state while checking auth
   if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading...</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen title="Checking your Monitor session..." description="Preparing your dashboard access." />
   }
 
   // Don't render protected content if not authenticated
-  if (!session) {
+  if (!session || !hasAccessToken) {
     return null
   }
 
@@ -56,9 +59,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <SessionProvider>
-      <ProtectedLayoutContent>{children}</ProtectedLayoutContent>
-    </SessionProvider>
-  )
+  return <ProtectedLayoutContent>{children}</ProtectedLayoutContent>
 }

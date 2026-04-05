@@ -1,8 +1,10 @@
 import NextAuth from 'next-auth'
 import GitHub from 'next-auth/providers/github'
 
-// List of authorized GitHub usernames - expand this as needed
-const AUTHORIZED_USERS: string[] = []
+const AUTHORIZED_USERS = (process.env.AUTHORIZED_GITHUB_USERS || 'gusvega')
+  .split(',')
+  .map((username) => username.trim().toLowerCase())
+  .filter(Boolean)
 
 export const { handlers, auth } = NextAuth({
   providers: [
@@ -10,8 +12,11 @@ export const { handlers, auth } = NextAuth({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
       allowDangerousEmailAccountLinking: true,
-      // Request repo scope to access private repos
-      scope: ['user:email', 'repo', 'public_repo'],
+      authorization: {
+        params: {
+          scope: 'user:email repo public_repo',
+        },
+      },
     }),
   ],
   pages: {
@@ -23,11 +28,10 @@ export const { handlers, auth } = NextAuth({
       console.log('[AUTH JWT] Called with account:', !!account, 'profile:', !!profile)
       
       if (account && profile) {
-        const username = (profile as any).login as string
+        const username = ((profile as any).login as string).toLowerCase()
         console.log('[AUTH JWT] Setting username:', username)
         
-        // Check if user is authorized (only if the list is populated)
-        if (AUTHORIZED_USERS.length > 0 && !AUTHORIZED_USERS.includes(username)) {
+        if (!AUTHORIZED_USERS.includes(username)) {
           console.warn('[AUTH JWT] User not in authorized list:', username)
           throw new Error('User not authorized')
         }

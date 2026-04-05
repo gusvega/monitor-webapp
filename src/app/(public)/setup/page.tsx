@@ -1,9 +1,21 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Check, Loader, GitBranch, AlertCircle } from 'lucide-react'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Container,
+  EmptyState,
+  SectionIntro,
+} from '@gusvega/ui'
+import { clearMonitorLocalState } from '@/lib/client-auth'
+import LoadingScreen from '@/components/LoadingScreen'
 
 interface GitHubRepo {
   id: number
@@ -15,7 +27,7 @@ interface GitHubRepo {
 }
 
 export default function SetupPage() {
-  const { data: session, status, update } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   
   // Check if user is managing repos (coming from /dashboard manage button)
@@ -95,6 +107,7 @@ export default function SetupPage() {
         loadSelectedRepos()
       } else {
         console.warn('[SETUP] No token in session')
+        clearMonitorLocalState()
         setError('Authentication token not available. Please log in again.')
         setIsLoading(false)
       }
@@ -180,130 +193,136 @@ export default function SetupPage() {
   }
 
   if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600 mb-2">{loadingStatus}</p>
-          <p className="text-xs text-neutral-500">This may take a moment...</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen title={loadingStatus} description="This may take a moment..." />
   }
 
   if (isLoading && !error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600 mb-2">{loadingStatus}</p>
-          <p className="text-xs text-neutral-500">Fetching from GitHub</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen title={loadingStatus} description="Fetching repositories from GitHub." />
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-neutral-50 to-white">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-neutral-900 mb-2">Select Repositories</h1>
-          <p className="text-neutral-600">
-            Choose which repositories you'd like to monitor with Monitor
-          </p>
-        </div>
+      <Container className="py-12">
+        <div className="mx-auto max-w-5xl">
+          <SectionIntro eyebrow="Setup" title="Select repositories to monitor" className="text-center">
+            <p className="text-neutral-600">
+              Choose which repositories you want Monitor to track for deployments and environments.
+            </p>
+          </SectionIntro>
 
-        {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-red-900 font-semibold text-sm">{error}</p>
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => {
-                    setError(null)
-                    setIsLoading(true)
-                    fetchGitHubRepos()
-                  }}
-                  className="text-red-700 text-sm hover:text-red-800 underline"
-                >
-                  Try again
-                </button>
-                <button
-                  onClick={() => router.push('/login')}
-                  className="text-red-700 text-sm hover:text-red-800 underline"
-                >
-                  Back to login
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Repository Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-          {repos.map((repo) => (
-            <button
-              key={repo.id}
-              onClick={() => toggleRepo(repo.id)}
-              className={`p-4 rounded-lg border-2 transition-all text-left ${
-                selectedRepos.includes(repo.id)
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-neutral-200 bg-white hover:border-neutral-300'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <GitBranch className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                    selectedRepos.includes(repo.id) ? 'text-blue-600' : 'text-neutral-600'
-                  }`} />
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-neutral-900 truncate">{repo.name}</h3>
-                    <p className="text-xs text-neutral-600 truncate">{repo.full_name}</p>
+          {error && (
+            <div className="mb-8 rounded-xl border border-red-200 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <Alert title="Failed to load repositories">{error}</Alert>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setError(null)
+                        setIsLoading(true)
+                        fetchGitHubRepos()
+                      }}
+                    >
+                      Try again
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        clearMonitorLocalState()
+                        signOut({ redirect: false }).finally(() => router.push('/login'))
+                      }}
+                    >
+                      Back to login
+                    </Button>
                   </div>
                 </div>
-                {selectedRepos.includes(repo.id) && (
-                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                )}
               </div>
-              {repo.description && (
-                <p className="text-sm text-neutral-600 line-clamp-2">{repo.description}</p>
-              )}
-              {repo.language && (
-                <div className="mt-3 pt-3 border-t border-neutral-200">
-                  <p className="text-xs text-neutral-500">{repo.language}</p>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+            </div>
+          )}
 
-        {repos.length === 0 && !error && (
-          <div className="text-center py-12">
-            <GitBranch className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
-            <p className="text-neutral-600">No repositories found</p>
+          {repos.length > 0 && (
+            <div className="mb-6 flex justify-center">
+              <Badge variant="secondary">{selectedRepos.length} selected</Badge>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 mb-12 md:grid-cols-2">
+            {repos.map((repo) => (
+              <button
+                key={repo.id}
+                onClick={() => toggleRepo(repo.id)}
+                className="text-left"
+              >
+                <Card
+                  className={`h-full transition-all ${
+                    selectedRepos.includes(repo.id)
+                      ? 'border-neutral-900 shadow-sm ring-1 ring-neutral-900'
+                      : 'hover:border-neutral-300'
+                  }`}
+                >
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="rounded-lg bg-neutral-100 p-2">
+                          <GitBranch className="w-4 h-4 text-neutral-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-neutral-900 truncate">{repo.name}</h3>
+                          <p className="text-xs text-neutral-600 truncate">{repo.full_name}</p>
+                        </div>
+                      </div>
+                      {selectedRepos.includes(repo.id) && (
+                        <Check className="w-5 h-5 text-neutral-900 flex-shrink-0" />
+                      )}
+                    </div>
+                    {repo.description && (
+                      <p className="text-sm text-neutral-600 line-clamp-2">{repo.description}</p>
+                    )}
+                    {repo.language && (
+                      <div className="pt-3 border-t border-neutral-100">
+                        <Badge variant="outline">{repo.language}</Badge>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Actions */}
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={() => router.push('/')}
-            className="px-6 py-3 rounded-lg border border-neutral-200 text-neutral-900 font-semibold hover:bg-neutral-50 transition-colors"
-          >
-            Skip
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving || selectedRepos.length === 0}
-            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
-            {isSaving && <Loader className="w-4 h-4 animate-spin" />}
-            Continue ({selectedRepos.length} selected)
-          </button>
+          {repos.length === 0 && !error && (
+            <Card>
+              <CardContent>
+                <EmptyState
+                  icon={<GitBranch className="w-10 h-10 text-neutral-300" />}
+                  title="No repositories found"
+                  description="We could not find any repositories for this account yet."
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex gap-4 justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => router.push('/')}
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || selectedRepos.length === 0}
+              className="gap-2"
+            >
+              {isSaving && <Loader className="w-4 h-4 animate-spin" />}
+              Continue ({selectedRepos.length} selected)
+            </Button>
+          </div>
         </div>
-      </div>
+      </Container>
     </div>
   )
 }

@@ -9,8 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@gusvega/ui": "^0.4.0",
-    "@gusvega/ui-tokens": "latest",
+    "@gusvega/ui": "^0.4.8",
     "next-auth": "^5.0.0-beta.20",
     "lucide-react": "latest",
     "next": "15.5.14",

@@ -5,7 +5,21 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { AlertCircle, CheckCircle, GitBranch, Loader, ExternalLink, Star, Server, X } from 'lucide-react'
 import Link from 'next/link'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  EmptyState,
+  SectionIntro,
+  Skeleton,
+  Stat,
+  Spinner,
+} from '@gusvega/ui'
 import { fetchDeployments, groupDeploymentsByEnvironment, fetchReleases, fetchWorkflowRuns, fetchTags, fetchWorkflowRunJobs, STANDARD_ENVIRONMENTS, type WorkflowRun, type WorkflowJob } from '@/lib/github'
+import { getLatestDeployment, getLatestRun, getLatestRunStatus, getRepoAttentionItems, getRepoHealth, getVersionDrift, type DeploymentTimelineEntry } from '@/lib/monitor-insights'
 
 interface GitHubRepo {
   id: number
@@ -29,6 +43,7 @@ interface RepoDisplay {
   lastUpdated: string
   url: string
   deployments?: Record<string, { tag: string; date: string } | null>
+  deploymentTimeline?: DeploymentTimelineEntry[]
   workflowRuns?: (WorkflowRun & { jobs?: WorkflowJob[] })[]
 }
 
@@ -51,6 +66,96 @@ const formatDate = (dateString?: string) => {
   }
 }
 
+const getRunStatusClasses = (status: 'success' | 'failure' | 'running') => {
+  if (status === 'success') return 'bg-green-100 text-green-700'
+  if (status === 'failure') return 'bg-red-100 text-red-700'
+  return 'bg-yellow-100 text-yellow-700'
+}
+
+const isCiWorkflowRun = (run: WorkflowRun) =>
+  Boolean(run.name?.includes('Validate') || run.name?.includes('CI'))
+
+const isCdWorkflowRun = (run: WorkflowRun) => !isCiWorkflowRun(run)
+
+function OverviewSkeleton() {
+  return (
+    <div className="space-y-8">
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <Skeleton variant="text" width="20%" />
+          <div className="grid gap-3 xl:grid-cols-2">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="rounded-xl border border-neutral-200 bg-white p-4">
+                <Skeleton variant="text" width="35%" />
+                <Skeleton variant="text" width="60%" className="mt-2" />
+                <Skeleton variant="text" width="80%" className="mt-2" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <Card key={index}>
+            <CardContent className="space-y-3 p-6">
+              <Skeleton variant="text" width="40%" />
+              <Skeleton variant="text" width="55%" height={28} />
+              <Skeleton variant="text" width="70%" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <Skeleton variant="text" width="18%" />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                <Skeleton variant="text" width="30%" />
+                <Skeleton variant="text" width="25%" height={32} className="mt-3" />
+                <Skeleton variant="text" width="55%" className="mt-2" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        {[...Array(2)].map((_, index) => (
+          <Card key={index}>
+            <CardContent className="space-y-4 p-6">
+              <Skeleton variant="text" width="22%" />
+              <div className="space-y-3">
+                {[...Array(3)].map((__, rowIndex) => (
+                  <div key={rowIndex} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    <Skeleton variant="text" width="45%" />
+                    <Skeleton variant="text" width="65%" className="mt-2" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EnvironmentCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+      <div className="mb-3 flex justify-center">
+        <Skeleton variant="circular" width={20} height={20} />
+      </div>
+      <Skeleton variant="text" width="40%" className="mx-auto" />
+      <Skeleton variant="text" width="70%" className="mx-auto mt-3" />
+      <Skeleton variant="text" width="45%" className="mx-auto mt-2" />
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const { data: session } = useSession()
@@ -61,6 +166,12 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [expandedCiRuns, setExpandedCiRuns] = useState<Record<number, number | null>>({})
   const [expandedCdRuns, setExpandedCdRuns] = useState<Record<number, number | null>>({})
+
+  useEffect(() => {
+    localStorage.removeItem('selectedRepoId')
+    window.dispatchEvent(new CustomEvent('repoSelected', { detail: { repoId: null } }))
+    setSelectedRepoId(null)
+  }, [])
 
   useEffect(() => {
     console.log('[DASHBOARD] Effect running - loading repos')
@@ -159,6 +270,17 @@ export default function Dashboard() {
         tags.forEach((tag: any) => {
           shaToTag[tag.commit.sha] = tag.name
         })
+        const deploymentTimeline: DeploymentTimelineEntry[] = deployments
+          .slice()
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+          .slice(0, 10)
+          .map((deployment) => ({
+            id: deployment.id,
+            environment: deployment.environment,
+            tag: shaToTag[deployment.sha] || deployment.ref.replace('refs/tags/', '').replace('refs/heads/', ''),
+            date: formatDate(deployment.updated_at),
+            state: deployment.state,
+          }))
 
         console.log('[DASHBOARD] Tags to SHA mapping:', shaToTag)
 
@@ -196,7 +318,7 @@ export default function Dashboard() {
           console.log('[DASHBOARD] CI runs from this data:', runsWithJobs.filter((r: any) => r.name?.includes('CI')))
 
           setRepos((prev) =>
-            prev.map((r) => (r.id === repo.id ? { ...r, deployments: deploymentData, workflowRuns: runsWithJobs } : r))
+            prev.map((r) => (r.id === repo.id ? { ...r, deployments: deploymentData, deploymentTimeline, workflowRuns: runsWithJobs } : r))
           )
 
           setDeploymentLoading((prev) => ({ ...prev, [repo.id]: false }))
@@ -248,8 +370,8 @@ export default function Dashboard() {
 
     const pollInterval = setInterval(async () => {
       console.log('[DASHBOARD] Polling for workflow updates...')
-      
-      const updatedRepos = await Promise.all(
+
+      const workflowUpdates = await Promise.all(
         repos.map(async (repo) => {
           try {
             const workflowRuns = await fetchWorkflowRuns(repo.full_name, accessToken)
@@ -263,28 +385,86 @@ export default function Dashboard() {
             }))
             
             console.log('[DASHBOARD] Updated workflow runs for', repo.name, '- count:', runsWithJobs.length)
-            
-            return { ...repo, workflowRuns: runsWithJobs }
+
+            return {
+              repoId: repo.id,
+              workflowRuns: runsWithJobs,
+            }
           } catch (error) {
             console.error('[DASHBOARD] Error fetching workflows for', repo.name, error)
-            return repo
+            return {
+              repoId: repo.id,
+              workflowRuns: repo.workflowRuns,
+            }
           }
         })
       )
-      
-      setRepos(updatedRepos)
+
+      setRepos((prev) =>
+        prev.map((repo) => {
+          const update = workflowUpdates.find((item) => item.repoId === repo.id)
+          return update ? { ...repo, workflowRuns: update.workflowRuns } : repo
+        })
+      )
     }, 5000) // Poll every 5 seconds for near real-time updates
 
     return () => clearInterval(pollInterval)
   }, [repos.length, session])
 
+  const selectedRepo = selectedRepoId ? repos.find((repo) => repo.id === selectedRepoId) ?? null : null
+  const envSummary = STANDARD_ENVIRONMENTS.map((env) => ({
+    env,
+    count: repos.filter((repo) => repo.deployments?.[env]).length,
+  }))
+  const totalCdRuns = repos.reduce(
+    (total, repo) => total + (repo.workflowRuns?.filter(isCdWorkflowRun).length || 0),
+    0
+  )
+  const totalCiRuns = repos.reduce(
+    (total, repo) => total + (repo.workflowRuns?.filter(isCiWorkflowRun).length || 0),
+    0
+  )
+  const repoInsights = repos.map((repo) => {
+    const health = getRepoHealth(repo, isCiWorkflowRun, isCdWorkflowRun)
+    const attentionItems = getRepoAttentionItems(repo, isCiWorkflowRun, isCdWorkflowRun)
+    const latestDeployment = getLatestDeployment(repo)
+    const latestCd = getLatestRun(repo.workflowRuns, isCdWorkflowRun)
+    const drift = getVersionDrift(repo)
+
+    return {
+      repo,
+      health,
+      attentionItems,
+      latestDeployment,
+      latestCd,
+      drift,
+    }
+  })
+  const reposNeedingAttention = repoInsights.filter(({ attentionItems }) => attentionItems.length > 0)
+  const latestCdRuns = repos
+    .flatMap((repo) =>
+      (repo.workflowRuns || [])
+        .filter(isCdWorkflowRun)
+        .map((run) => ({
+          repoName: repo.name,
+          repoUrl: repo.url,
+          run,
+        }))
+    )
+    .sort((a, b) => new Date(b.run.created_at).getTime() - new Date(a.run.created_at).getTime())
+    .slice(0, 5)
+
   return (
     <main className="min-h-screen bg-neutral-50">
-      {/* Header */}
       <div className="bg-white border-b border-neutral-200">
         <div className="px-8 py-8">
-          <h1 className="text-4xl font-bold text-neutral-900 mb-2">Repository Monitor</h1>
-          <p className="text-neutral-600">
+          <SectionIntro
+            eyebrow="Monitor"
+            title="Repository Monitor"
+            smaller
+            className="px-0"
+          >
+            <p className="text-neutral-600">
             {selectedRepoId 
               ? 'View details for selected repository'
               : 'Track all your selected repositories'
@@ -293,72 +473,295 @@ export default function Dashboard() {
               <span>
                 {' '}
                 —{' '}
-                <Link href="/setup" className="text-blue-600 hover:text-blue-700 underline">
+                <Link href="/setup" className="text-neutral-900 underline underline-offset-4">
                   Select repositories
                 </Link>{' '}
                 to get started
               </span>
             )}
-          </p>
+            </p>
+          </SectionIntro>
         </div>
       </div>
 
-      {/* Content */}
       <div className="px-8 py-8 space-y-8">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader className="w-8 h-8 animate-spin text-neutral-600 mx-auto mb-2" />
-              <p className="text-neutral-600 mb-1">Loading repositories...</p>
-              <p className="text-xs text-neutral-500">Please wait</p>
-            </div>
-          </div>
+          <OverviewSkeleton />
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Repositories</h3>
-            <p className="text-red-700 mb-6">{error}</p>
-            <Link
-              href="/setup"
-              className="inline-block px-6 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
-            >
-              Go to Setup
-            </Link>
-          </div>
+          <Card>
+            <CardContent className="py-10 text-center">
+              <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-3" />
+              <div className="mx-auto max-w-xl">
+                <Alert title="Error loading repositories">{error}</Alert>
+              </div>
+              <div className="mt-6">
+                <Button onClick={() => router.push('/setup')}>Go to Setup</Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : repos.length === 0 ? (
-          <div className="bg-white rounded-lg border border-neutral-200 p-12 text-center">
-            <GitBranch className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">No repositories selected</h3>
-            <p className="text-neutral-600 mb-6">Select repositories to monitor them here</p>
-            <Link
-              href="/setup"
-              className="inline-block px-6 py-2.5 rounded-lg bg-neutral-900 text-white font-semibold hover:bg-neutral-800 transition-colors"
-            >
-              Select Repositories
-            </Link>
-          </div>
+          <Card>
+            <CardContent className="py-10">
+              <EmptyState
+                icon={<GitBranch className="w-10 h-10 text-neutral-300" />}
+                title="No repositories selected"
+                description="Select repositories to monitor them here."
+                action={<Button onClick={() => router.push('/setup')}>Select Repositories</Button>}
+              />
+            </CardContent>
+          </Card>
         ) : (
           <>
-            {/* Repositories Grid */}
-            {(() => {
-              const displayRepos = selectedRepoId ? repos.filter(r => r.id === selectedRepoId) : repos
-              console.log('[DASHBOARD] Filtering: selectedRepoId=', selectedRepoId, 'total repos=', repos.length, 'display repos=', displayRepos.length)
-              return (
-                <>
-                  <div className="space-y-4">
-                    {displayRepos.map((repo) => (
+            {!selectedRepo ? (
+              <>
+                <Card className={reposNeedingAttention.length > 0 ? 'border-amber-200 bg-amber-50/40' : ''}>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-700" />
+                      <p className="text-sm font-semibold text-neutral-900">Needs Attention</p>
+                    </div>
+
+                    {reposNeedingAttention.length === 0 ? (
+                      <p className="text-sm text-neutral-600">No urgent cross-repo issues detected right now.</p>
+                    ) : (
+                      <div className="grid gap-3 xl:grid-cols-2">
+                        {reposNeedingAttention.slice(0, 6).map(({ repo, attentionItems, health }) => (
+                          <div key={repo.id} className="rounded-xl border border-amber-200 bg-white p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-neutral-900">{repo.name}</p>
+                                <p className="truncate text-xs text-neutral-500">{repo.full_name}</p>
+                              </div>
+                              <Badge variant={health.tone === 'critical' ? 'outline' : 'secondary'}>
+                                {health.label}
+                              </Badge>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                              {attentionItems.slice(0, 3).map((item) => (
+                                <p key={`${repo.id}-${item}`} className="text-xs text-neutral-700">
+                                  {item}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <Card>
+                    <CardContent>
+                      <Stat label="Repositories" value={repos.length} change="selected for monitoring" />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent>
+                      <Stat label="CD Runs" value={totalCdRuns} change="across all repositories" />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent>
+                      <Stat label="CI Runs" value={totalCiRuns} change="recent workflow activity" />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent>
+                      <Stat
+                        label="Stars"
+                        value={repos.reduce((total, repo) => total + Number(repo.stars || 0), 0)}
+                        change="GitHub stars combined"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-center gap-2">
+                      <Server className="h-4 w-4 text-neutral-700" />
+                      <p className="text-sm font-semibold text-neutral-900">Environment Coverage</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {envSummary.map(({ env, count }) => (
+                        <div key={env} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{env}</p>
+                          <p className="mt-2 text-2xl font-bold text-neutral-900">{count}</p>
+                          <p className="mt-1 text-sm text-neutral-600">repositories deployed</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="h-4 w-4 text-neutral-700" />
+                      <p className="text-sm font-semibold text-neutral-900">Repository Status Table</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
+                            <th className="pb-3 pr-4 font-semibold">Repository</th>
+                            <th className="pb-3 pr-4 font-semibold">Health</th>
+                            <th className="pb-3 pr-4 font-semibold">Prod Version</th>
+                            <th className="pb-3 pr-4 font-semibold">Last Deployment</th>
+                            <th className="pb-3 pr-4 font-semibold">Latest CD</th>
+                            <th className="pb-3 font-semibold">Drift</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {repoInsights.map(({ repo, health, latestDeployment, latestCd, drift }) => (
+                            <tr key={repo.id} className="border-b border-neutral-100 align-top">
+                              <td className="py-3 pr-4">
+                                <div>
+                                  <p className="font-semibold text-neutral-900">{repo.name}</p>
+                                  <p className="text-xs text-neutral-500">{repo.full_name}</p>
+                                </div>
+                              </td>
+                              <td className="py-3 pr-4">
+                                <Badge variant={health.tone === 'critical' ? 'outline' : 'secondary'}>
+                                  {health.label}
+                                </Badge>
+                              </td>
+                              <td className="py-3 pr-4 text-neutral-700">{repo.deployments?.prod?.tag || 'Not deployed'}</td>
+                              <td className="py-3 pr-4 text-neutral-700">
+                                {latestDeployment ? `${latestDeployment.environment} · ${latestDeployment.date}` : 'No deployments'}
+                              </td>
+                              <td className="py-3 pr-4 text-neutral-700">
+                                {latestCd ? (
+                                  <span className={`rounded px-2 py-1 text-xs font-medium ${getRunStatusClasses(getLatestRunStatus(latestCd) as 'success' | 'failure' | 'running')}`}>
+                                    {getLatestRunStatus(latestCd)}
+                                  </span>
+                                ) : (
+                                  'No CD data'
+                                )}
+                              </td>
+                              <td className="py-3 text-neutral-700">{drift.summary}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                  <Card>
+                    <CardContent className="space-y-4 p-6">
+                      <div className="flex items-center gap-2">
+                        <GitBranch className="h-4 w-4 text-neutral-700" />
+                        <p className="text-sm font-semibold text-neutral-900">Latest CD Runs</p>
+                      </div>
+
+                      {latestCdRuns.length === 0 ? (
+                        <p className="text-sm text-neutral-500">No CD workflow runs found yet.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {latestCdRuns.map(({ repoName, repoUrl, run }) => (
+                            <div
+                              key={`${repoName}-${run.id}`}
+                              className="rounded-xl border border-neutral-200 bg-neutral-50 p-4"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="truncate text-sm font-semibold text-neutral-900">{run.name}</p>
+                                    <Badge variant="outline">{repoName}</Badge>
+                                  </div>
+                                  <p className="mt-1 text-xs text-neutral-500">
+                                    {run.head_branch} · {formatDate(run.created_at)}
+                                  </p>
+                                </div>
+                                <a
+                                  href={repoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-neutral-400 transition-colors hover:text-neutral-700"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="space-y-4 p-6">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-neutral-700" />
+                        <p className="text-sm font-semibold text-neutral-900">Repository Status</p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {repos.map((repo) => {
+                          const deployedEnvs = STANDARD_ENVIRONMENTS.filter((env) => repo.deployments?.[env])
+                          const isRepoLoading = deploymentLoading[repo.id]
+
+                          return (
+                            <div key={repo.id} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-neutral-900">{repo.name}</p>
+                                  <p className="truncate text-xs text-neutral-500">{repo.full_name}</p>
+                                </div>
+                                {isRepoLoading ? (
+                                  <Spinner size="sm" />
+                                ) : deployedEnvs.length > 0 ? (
+                                  <Badge variant="secondary">{deployedEnvs.length} envs live</Badge>
+                                ) : (
+                                  <Badge variant="outline">No deployments</Badge>
+                                )}
+                              </div>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {STANDARD_ENVIRONMENTS.map((env) => {
+                                  const hasDeployment = Boolean(repo.deployments?.[env])
+                                  return (
+                                    <span
+                                      key={`${repo.id}-${env}`}
+                                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                                        hasDeployment
+                                          ? 'bg-green-100 text-green-700'
+                                          : 'bg-neutral-200 text-neutral-600'
+                                      }`}
+                                    >
+                                      {hasDeployment ? <CheckCircle className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                      {env}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+              </>
+            ) : (
+              <div className="space-y-4">
                 <div
-                  key={repo.id}
-                  className="bg-white rounded-lg border border-neutral-200 overflow-hidden hover:border-neutral-300 transition-colors"
+                  key={selectedRepo.id}
+                  className="overflow-hidden"
                 >
-                  <div className="p-6">
+                  <Card className="hover:border-neutral-300 transition-colors">
+                  <CardContent className="p-6">
                     {/* Repo Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <h2 className="text-xl font-bold text-neutral-900 truncate">{repo.name}</h2>
+                          <h2 className="text-xl font-bold text-neutral-900 truncate">{selectedRepo.name}</h2>
                           <a
-                            href={repo.url}
+                            href={selectedRepo.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-neutral-400 hover:text-neutral-600 transition-colors flex-shrink-0"
@@ -367,68 +770,77 @@ export default function Dashboard() {
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </div>
-                        <p className="text-sm text-neutral-600 truncate">{repo.full_name}</p>
+                        <p className="text-sm text-neutral-600 truncate">{selectedRepo.full_name}</p>
                       </div>
-                      {repo.stars !== '0' && repo.stars !== 'N/A' && (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg ml-4 flex-shrink-0">
+                      {selectedRepo.stars !== '0' && selectedRepo.stars !== 'N/A' && (
+                        <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
                           <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-                          <span className="text-sm font-semibold text-amber-700">{repo.stars}</span>
+                          <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">
+                            {selectedRepo.stars} stars
+                          </Badge>
                         </div>
                       )}
                     </div>
 
                     {/* Description */}
-                    {repo.description !== 'N/A' && (
-                      <p className="text-sm text-neutral-600 mb-4 line-clamp-2">{repo.description}</p>
+                    {selectedRepo.description !== 'N/A' && (
+                      <p className="text-sm text-neutral-600 mb-4 line-clamp-2">{selectedRepo.description}</p>
                     )}
 
                     {/* Repo Info Grid */}
-                    <div className="grid grid-cols-4 gap-4 pt-4 border-t border-neutral-200">
-                      <div>
+                    <div className="grid gap-3 pt-4 border-t border-neutral-200 sm:grid-cols-3">
+                      <div className="rounded-xl bg-neutral-50 border border-neutral-200 p-4">
                         <p className="text-neutral-600 text-xs font-semibold uppercase tracking-wide mb-1">Language</p>
-                        <p className="text-neutral-900 font-medium">{repo.language}</p>
+                        <p className="text-neutral-900 font-medium">{selectedRepo.language}</p>
                       </div>
-                      <div>
+                      <div className="rounded-xl bg-neutral-50 border border-neutral-200 p-4">
                         <p className="text-neutral-600 text-xs font-semibold uppercase tracking-wide mb-1">Last Updated</p>
-                        <p className="text-neutral-900 font-medium">{repo.lastUpdated}</p>
+                        <p className="text-neutral-900 font-medium">{selectedRepo.lastUpdated}</p>
                       </div>
-                      <div>
+                      <div className="rounded-xl bg-neutral-50 border border-neutral-200 p-4">
                         <p className="text-neutral-600 text-xs font-semibold uppercase tracking-wide mb-1">Full Name</p>
-                        <p className="text-neutral-900 font-medium truncate">{repo.full_name}</p>
+                        <p className="text-neutral-900 font-medium truncate">{selectedRepo.full_name}</p>
                       </div>
                     </div>
 
-                    {/* Deployments Section */}
-                    {deploymentLoading[repo.id] ? (
-                      <div className="mt-4 pt-4 border-t border-neutral-200">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Server className="w-4 h-4 text-neutral-600" />
-                          <p className="text-sm font-semibold text-neutral-600">Loading environments...</p>
+                    {/* Environments Section */}
+                    <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="rounded-lg bg-neutral-100 p-2">
+                            <Server className="w-4 h-4 text-neutral-700" />
+                          </div>
+                          <div>
+                            <p className="text-base font-semibold text-neutral-900">Environments</p>
+                            <p className="text-xs text-neutral-500">Latest deployed version by target environment</p>
+                          </div>
                         </div>
                       </div>
-                    ) : repo.deployments ? (
-                      <div className="mt-4 pt-4 border-t border-neutral-200">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Server className="w-4 h-4 text-neutral-600" />
-                          <p className="text-sm font-semibold text-neutral-900">Environments</p>
+
+                      {deploymentLoading[selectedRepo.id] ? (
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          {STANDARD_ENVIRONMENTS.map((env) => (
+                            <EnvironmentCardSkeleton key={env} />
+                          ))}
                         </div>
-                        <div className="grid grid-cols-4 gap-3">
+                      ) : selectedRepo.deployments ? (
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                           {STANDARD_ENVIRONMENTS.map((env) => {
-                            const data = repo.deployments?.[env]
+                            const data = selectedRepo.deployments?.[env]
                             return (
-                              <div key={env} className="bg-neutral-50 rounded p-4 text-center">
-                                <div className="flex justify-center mb-3">
+                              <div key={env} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-center">
+                                <div className="mb-3 flex justify-center">
                                   {data ? (
                                     <CheckCircle className="w-5 h-5 text-green-600" />
                                   ) : (
                                     <X className="w-5 h-5 text-red-400" />
                                   )}
                                 </div>
-                                <p className="text-sm font-medium text-neutral-700 mb-2 capitalize">{env}</p>
+                                <p className="mb-2 text-sm font-medium text-neutral-700 capitalize">{env}</p>
                                 {data ? (
                                   <div>
-                                    <p className="text-xs font-semibold text-neutral-900 break-words">{data.tag}</p>
-                                    <p className="text-xs text-neutral-500 mt-1">{data.date}</p>
+                                    <p className="break-words text-xs font-semibold text-neutral-900">{data.tag}</p>
+                                    <p className="mt-1 text-xs text-neutral-500">{data.date}</p>
                                   </div>
                                 ) : (
                                   <p className="text-xs text-neutral-500">Not deployed</p>
@@ -437,11 +849,15 @@ export default function Dashboard() {
                             )
                           })}
                         </div>
-                      </div>
-                    ) : null}
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-6">
+                          <p className="text-sm font-semibold text-neutral-600">No environment deployment data yet.</p>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Recent Deployments - Organized by Workflow Pipeline */}
-                    {repo.workflowRuns && repo.workflowRuns.length > 0 && (
+                    {selectedRepo.workflowRuns && selectedRepo.workflowRuns.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-neutral-200">
                         <div className="flex items-center gap-2 mb-4">
                           <Server className="w-4 h-4 text-neutral-600" />
@@ -455,7 +871,7 @@ export default function Dashboard() {
                             <div className="grid grid-cols-1 gap-3">
                               {(() => {
                                 const ciJobs: (WorkflowJob & { runName: string; runId: number })[] = []
-                                repo.workflowRuns.forEach((run) => {
+                                selectedRepo.workflowRuns.forEach((run) => {
                                   if (run.name?.includes('CI') && run.jobs) {
                                     run.jobs.forEach((job) => {
                                       ciJobs.push({
@@ -480,15 +896,15 @@ export default function Dashboard() {
                             {/* Last CI Run - Debug Display */}
                             {/* Pipeline Runs - Collapsible boxes like CD workflow */}
                             {(() => {
-                              const ciRuns = (repo.workflowRuns || [])
-                                .filter((run) => run.name?.includes('Validate') || run.name?.includes('CI'))
+                              const ciRuns = (selectedRepo.workflowRuns || [])
+                                .filter(isCiWorkflowRun)
                                 .slice(0, 5)
-                              console.log('[CI BOXES DEBUG]', { repo: repo.name, totalRuns: repo.workflowRuns?.length, ciRunsFiltered: ciRuns.length, runNames: repo.workflowRuns?.map(r => r.name) })
+                              console.log('[CI BOXES DEBUG]', { repo: selectedRepo.name, totalRuns: selectedRepo.workflowRuns?.length, ciRunsFiltered: ciRuns.length, runNames: selectedRepo.workflowRuns?.map(r => r.name) })
 
                               return ciRuns.length > 0 ? (
                                 <div className="space-y-3">
                                   {ciRuns.map((run) => {
-                                    const isExpanded = expandedCiRuns[repo.id] === run.id
+                                    const isExpanded = expandedCiRuns[selectedRepo.id] === run.id
                                     // Get unique jobs by name - GitHub sometimes returns duplicate jobs
                                     const jobsByName: Record<string, any> = {}
                                     ;(run.jobs || []).forEach((job) => {
@@ -517,7 +933,7 @@ export default function Dashboard() {
                                           onClick={() =>
                                             setExpandedCiRuns((prev) => ({
                                               ...prev,
-                                              [repo.id]: isExpanded ? null : run.id,
+                                              [selectedRepo.id]: isExpanded ? null : run.id,
                                             }))
                                           }
                                           className="w-full flex items-center justify-between hover:bg-blue-50 p-2 rounded transition-colors"
@@ -544,13 +960,7 @@ export default function Dashboard() {
                                             )}
                                           </div>
                                           <span
-                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${
-                                              runStatus === 'success'
-                                                ? 'bg-green-100 text-green-700'
-                                                : runStatus === 'failure'
-                                                ? 'bg-red-100 text-red-700'
-                                                : 'bg-yellow-100 text-yellow-700'
-                                            }`}
+                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${getRunStatusClasses(runStatus)}`}
                                           >
                                             <span>
                                               {runStatus === 'success' ? '✅' : runStatus === 'failure' ? '❌' : '⏳'}
@@ -593,14 +1003,17 @@ export default function Dashboard() {
                           <div className="col-span-3 bg-green-50 border border-green-200 rounded-lg p-4">
                             <p className="text-sm font-bold text-green-900 mb-3">CD Workflow</p>
                             {(() => {
-                              const cdRuns = repo.workflowRuns
-                                ?.filter((run) => run.name?.includes('CD'))
+                              const cdRuns = selectedRepo.workflowRuns
+                                ?.filter(isCdWorkflowRun)
                                 .slice(0, 5) || []
+                              
+                              console.log('[CD DEBUG]', { repo: selectedRepo.name, totalRuns: selectedRepo.workflowRuns?.length, allWorkflowNames: selectedRepo.workflowRuns?.map(r => r.name), cdRunsFiltered: cdRuns.length })
 
                               return cdRuns.length > 0 ? (
                                 <div className="space-y-3">
                                   {cdRuns.map((run) => {
-                                    const isExpanded = expandedCdRuns[repo.id] === run.id
+                                    const isExpanded = expandedCdRuns[selectedRepo.id] === run.id
+                                    
                                     const versionJob = (run.jobs || []).find(j => j.name?.includes('version') || j.name === 'Create Semantic Version')
                                     const allDeployJobs = (run.jobs || []).filter((job) => 
                                       job.name.includes('deploy') || 
@@ -627,7 +1040,7 @@ export default function Dashboard() {
                                           onClick={() =>
                                             setExpandedCdRuns((prev) => ({
                                               ...prev,
-                                              [repo.id]: isExpanded ? null : run.id,
+                                              [selectedRepo.id]: isExpanded ? null : run.id,
                                             }))
                                           }
                                           className="w-full flex items-center justify-between hover:bg-green-50 p-2 rounded transition-colors"
@@ -669,13 +1082,7 @@ export default function Dashboard() {
                                             )}
                                           </div>
                                           <span
-                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${
-                                              overallStatus === 'success'
-                                                ? 'bg-green-100 text-green-700'
-                                                : overallStatus === 'failure'
-                                                ? 'bg-red-100 text-red-700'
-                                                : 'bg-yellow-100 text-yellow-700'
-                                            }`}
+                                            className={`text-xs font-medium px-2 py-1 rounded flex items-center gap-1 ${getRunStatusClasses(overallStatus)}`}
                                           >
                                             <span>
                                               {overallStatus === 'success' ? '✅' : overallStatus === 'failure' ? '❌' : '⏳'}
@@ -765,23 +1172,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </CardContent>
+                  </Card>
                 </div>
-                    ))}
-                  </div>
-
-                  {/* Manage Repos Button */}
-                  <div className="flex justify-center">
-                    <button
-                      onClick={() => router.push('/setup?manage=true')}
-                      className="px-6 py-2.5 rounded-lg border border-neutral-200 text-neutral-900 font-semibold hover:bg-neutral-50 transition-colors"
-                    >
-                      Manage Repositories
-                    </button>
-                  </div>
-                </>
-              )
-            })()}
+              </div>
+            )}
           </>
         )}
       </div>
